@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Muammer vs Enes | Online 3D Satranç</title>
-  <!-- Ücretsiz PeerJS Kütüphanesi (İnternetten iki cihazı birbirine bağlamak için) -->
+  <title>Muammer vs Enes | 5 Haneli Online Satranç</title>
   <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
   <style>
     * {
@@ -26,7 +25,7 @@
       position: relative;
     }
 
-    /* Arka Planda Kayan Yazı Efekti */
+    /* Arka Planda Kayan Yazı */
     .bg-ticker {
       position: absolute;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -58,7 +57,7 @@
       font-weight: 900;
     }
 
-    /* Oda Bağlantı Paneli */
+    /* 5 Haneli Oda Paneli */
     .lobby-panel {
       background: rgba(255, 255, 255, 0.08);
       backdrop-filter: blur(12px);
@@ -75,10 +74,12 @@
       padding: 8px 12px;
       border-radius: 8px;
       border: none;
-      width: 70%;
+      width: 60%;
       margin-top: 5px;
-      font-size: 0.9rem;
+      font-size: 1.1rem;
+      letter-spacing: 2px;
       text-align: center;
+      font-weight: bold;
     }
     .lobby-panel button {
       padding: 8px 14px;
@@ -88,7 +89,7 @@
       color: #000;
       font-weight: bold;
       cursor: pointer;
-      margin-top: 5px;
+      margin-top: 8px;
     }
 
     /* Oyuncu Kartları */
@@ -193,14 +194,15 @@
     <h1>ONLINE CHESS ARENA</h1>
   </header>
 
-  <!-- Oda Kurma / Katılma Paneli -->
+  <!-- 5 Haneli Oda Paneli -->
   <div class="lobby-panel" id="lobbyPanel">
-    <h3 style="font-size: 1rem; color: #00f5d4; margin-bottom: 5px;">Oda Bağlantısı</h3>
-    <p id="myPeerId" style="font-size: 0.8rem; opacity: 0.8; word-break: break-all;">Bağlantı kodunuz oluşturuluyor...</p>
-    <div style="margin-top: 10px;">
-      <input type="text" id="partnerIdInput" placeholder="Arkadaşın Kodunu Yaz">
+    <h3 style="font-size: 1rem; color: #00f5d4; margin-bottom: 5px;">5 Haneli Oda Kodu</h3>
+    <div id="roomCodeDisplay" style="font-size: 1.5rem; font-weight: bold; color: #ffd166; letter-spacing: 3px; margin: 5px 0;">Oluşturuluyor...</div>
+    <p style="font-size: 0.75rem; opacity: 0.7; margin-bottom: 8px;">Bu kodu arkadaşına söyle veya o sana söylesin.</p>
+    <div>
+      <input type="text" id="partnerCodeInput" placeholder="5 Haneli Kod" maxlength="5">
       <br>
-      <button onclick="connectToPartner()">Odaya Bağlan</button>
+      <button onclick="joinRoom()">Odaya Katıl</button>
     </div>
   </div>
 
@@ -258,38 +260,66 @@
     let lostByWhite = [];
     let lostByBlack = [];
 
-    // Online Ağ Değişkenleri
     let peer = null;
     let conn = null;
-    let myRole = null; // 'w' (Muammer) veya 'b' (Enes)
+    let myRole = null; // 'w' veya 'b'
+    let my5DigitCode = "";
 
-    function initPeer() {
-      peer = new Peer();
-      peer.on('open', (id) => {
-        document.getElementById('myPeerId').innerText = "Oda Kodun: " + id;
-        myRole = 'w'; // Odayı açan Beyaz (Muammer) olur
+    // 5 haneli rastgele kod üretici
+    function generate5DigitCode() {
+      return Math.floor(10000 + Math.random() * 90000).toString();
+    }
+
+    function initPeerSystem() {
+      my5DigitCode = generate5DigitCode();
+      // Prefix ekleyerek benzersiz bir peer id oluşturuyoruz (örn: muammer-chess-48291)
+      peer = new Peer("muammer-chess-" + my5DigitCode);
+
+      peer.on('open', () => {
+        document.getElementById('roomCodeDisplay').innerText = my5DigitCode;
+        myRole = 'w'; // Odayı açan Beyaz (Muammer)
+      });
+
+      peer.on('error', (err) => {
+        // Eğer nadiren aynı kod üretilirse yeniden dene
+        if (err.type === 'unavailable-id') {
+          initPeerSystem();
+        } else {
+          console.error(err);
+        }
       });
 
       peer.on('connection', (connection) => {
         conn = connection;
-        setupConnection();
-        alert("Enes odaya bağlandı! Oyun başlıyor.");
+        setupConnEvents();
+        alert("Enes odaya katıldı! Maç başlıyor.");
         document.getElementById('lobbyPanel').style.display = 'none';
       });
     }
 
-    function connectToPartner() {
-      const code = document.getElementById('partnerIdInput').value.trim();
-      if (!code) return alert("Lütfen oda kodunu gir!");
+    function joinRoom() {
+      const code = document.getElementById('partnerCodeInput').value.trim();
+      if (code.length !== 5) {
+        alert("Lütfen geçerli 5 haneli oda kodunu gir!");
+        return;
+      }
 
-      conn = peer.connect(code);
-      myRole = 'b'; // Katılan Siyah (Enes) olur
-      setupConnection();
-      alert("Odaya bağlanıldı! Oyun başlıyor.");
-      document.getElementById('lobbyPanel').style.display = 'none';
+      const targetId = "muammer-chess-" + code;
+      conn = peer.connect(targetId);
+      myRole = 'b'; // Odaya katılan Siyah (Enes)
+
+      conn.on('open', () => {
+        setupConnEvents();
+        alert("Odaya başarıyla bağlandın! Maç başlıyor.");
+        document.getElementById('lobbyPanel').style.display = 'none';
+      });
+
+      conn.on('error', () => {
+        alert("Oda bulunamadı! Kodu kontrol et.");
+      });
     }
 
-    function setupConnection() {
+    function setupConnEvents() {
       conn.on('data', (data) => {
         if (data.type === 'move') {
           boardState = data.board;
@@ -500,7 +530,7 @@
     }
 
     window.onload = () => {
-      initPeer();
+      initPeerSystem();
       drawBoard();
     };
   </script>
