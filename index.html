@@ -100,6 +100,9 @@
         let selectedSquare = null;
         let roomId = null, playerColor = 'white';
 
+        const synth = new Tone.Synth().toDestination();
+        function playMoveSound() { synth.triggerAttackRelease("C4", "8n"); }
+
         function showToast(msg) {
             const t = document.getElementById('toast');
             t.innerText = msg;
@@ -113,15 +116,15 @@
             scene.background = new THREE.Color(0x0f172a);
 
             camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 12, 12);
+            camera.position.set(0, 14, 10);
             camera.lookAt(0, 0, 0);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             container.appendChild(renderer.domElement);
 
-            scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
             dirLight.position.set(10, 20, 10);
             scene.add(dirLight);
 
@@ -158,19 +161,33 @@
             renderer.render(scene, camera);
         }
 
+        // Daha şık ve estetik 3D Satranç Taşları (Klasik figür yapısı)
         function createPieceMesh(type, color) {
             const group = new THREE.Group();
-            const mat = new THREE.MeshStandardMaterial({ color: color === 'w' ? 0xf8fafc : 0x334155 });
-            let geo = new THREE.CylinderGeometry(0.3, 0.4, 0.6, 16);
-            if (type === 'r') geo = new THREE.BoxGeometry(0.6, 0.8, 0.6);
-            if (type === 'n') geo = new THREE.ConeGeometry(0.4, 0.9, 16);
-            if (type === 'b') geo = new THREE.CylinderGeometry(0.2, 0.4, 1, 16);
-            if (type === 'q') geo = new THREE.SphereGeometry(0.45, 16, 16);
-            if (type === 'k') geo = new THREE.BoxGeometry(0.5, 1.2, 0.5);
+            const mat = new THREE.MeshStandardMaterial({ color: color === 'w' ? 0xf8fafc : 0x334155, roughness: 0.2 });
+            
+            let mesh;
+            if (type === 'p') { // Piyon
+                mesh = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.6, 16), mat);
+                mesh.position.y = 0.3;
+            } else if (type === 'r') { // Kale
+                mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.7, 16), mat);
+                mesh.position.y = 0.35;
+            } else if (type === 'n') { // At
+                mesh = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.8, 0.4), mat);
+                mesh.position.y = 0.4;
+            } else if (type === 'b') { // Fil
+                mesh = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), mat);
+                mesh.position.y = 0.5;
+            } else if (type === 'q') { // Vezir
+                mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.4, 0.9, 16), mat);
+                mesh.position.y = 0.45;
+            } else if (type === 'k') { // Şah
+                mesh = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.0, 0.4), mat);
+                mesh.position.y = 0.5;
+            }
 
-            const mesh = new THREE.Mesh(geo, mat);
-            mesh.position.y = 0.4;
-            group.add(mesh);
+            if (mesh) group.add(mesh);
             return group;
         }
 
@@ -215,24 +232,31 @@
         }
 
         function handleSquareClick(sq) {
-            if ((chess.turn() === 'w' && playerColor !== 'white') || (chess.turn() === 'b' && playerColor !== 'black')) {
+            // Renk ve sıra kontrolü
+            const currentTurn = chess.turn(); // 'w' veya 'b'
+            if ((currentTurn === 'w' && playerColor !== 'white') || (currentTurn === 'b' && playerColor !== 'black')) {
                 showToast("Sıra rakipte!");
                 return;
             }
+
             if (!selectedSquare) {
                 const piece = chess.get(sq);
-                if (piece && piece.color === chess.turn()) {
+                if (piece && piece.color === currentTurn) {
                     selectedSquare = sq;
                     showToast(sq + " seçildi");
                 }
             } else {
                 const move = chess.move({ from: selectedSquare, to: sq, promotion: 'q' });
                 if (move) {
+                    playMoveSound();
                     selectedSquare = null;
                     updatePieces3D(chess.fen());
+                    
+                    // Firebase'e yeni hamleyi yaz
                     window.set(window.ref(window.db, 'rooms/' + roomId), { fen: chess.fen() });
                 } else {
                     selectedSquare = null;
+                    showToast("Geçersiz hamle!");
                 }
             }
         }
@@ -244,6 +268,7 @@
                 if (data && data.fen && data.fen !== chess.fen()) {
                     chess.load(data.fen);
                     updatePieces3D(data.fen);
+                    playMoveSound();
                 }
             });
         }
@@ -253,7 +278,6 @@
             playerColor = 'white';
             chess = new Chess();
             
-            // Firebase'e odayı kaydet
             window.set(window.ref(window.db, 'rooms/' + roomId), { fen: chess.fen() })
                 .then(() => {
                     document.getElementById('menu-screen').classList.add('hidden');
@@ -264,19 +288,16 @@
                     listenRoom(roomId);
                     showToast("Oda başarıyla oluşturuldu!");
                 })
-                .catch((error) => {
-                    showToast("Hata: Oda kurulamadı!");
-                    console.error(error);
-                });
+                .catch(() => showToast("Oda kurulamadı!"));
         });
 
         document.getElementById('join-room-btn').addEventListener('click', () => {
             const code = document.getElementById('room-input').value.trim();
-            if (!code) return showToast("Lütfen oda kodu girin!");
+            if (!code) return showToast("Oda kodu girin!");
             
             roomId = code;
             playerColor = 'black';
-            camera.position.set(0, 12, -12);
+            camera.position.set(0, 14, -10); // Siyah oyuncu için kamerayı çevir
             camera.lookAt(0,0,0);
 
             chess = new Chess();
