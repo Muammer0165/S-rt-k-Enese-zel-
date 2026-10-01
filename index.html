@@ -12,7 +12,7 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     body {
-      background: radial-gradient(circle at center, #2c3e50, #0f172a);
+      background: radial-gradient(circle at center, #1e293b, #0f172a);
       color: #fff;
       min-height: 100vh;
       display: flex;
@@ -24,43 +24,42 @@
     }
     header {
       text-align: center;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
     header h1 {
-      font-size: 1.5rem;
-      color: #f39c12;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+      font-size: 1.4rem;
+      color: #fbbf24;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
       letter-spacing: 1px;
     }
     .status {
-      font-size: 1rem;
+      font-size: 0.95rem;
       background: rgba(255, 255, 255, 0.1);
-      padding: 6px 16px;
+      padding: 6px 14px;
       border-radius: 20px;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       border: 1px solid rgba(255, 255, 255, 0.2);
     }
     
-    /* 3D Görünümlü Satranç Tahtası Konteyneri */
+    /* 3D Görünümlü Satranç Tahtası */
     .board-container {
-      perspective: 900px;
-      padding: 10px;
-      background: rgba(0, 0, 0, 0.4);
-      border-radius: 15px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.8), inset 0 2px 5px rgba(255,255,255,0.1);
-      border: 2px solid #34495e;
+      perspective: 1000px;
+      padding: 8px;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 16px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.8);
+      border: 2px solid #334155;
     }
 
     .chess-board {
       display: grid;
       grid-template-columns: repeat(8, 1fr);
       grid-template-rows: repeat(8, 1fr);
-      width: 360px;
-      height: 360px;
-      border: 4px solid #1a252f;
-      transform: rotateX(15deg);
+      width: 350px;
+      height: 350px;
+      border: 3px solid #0f172a;
+      transform: rotateX(12deg);
       transform-style: preserve-3d;
-      box-shadow: 0 15px 25px rgba(0,0,0,0.6);
     }
 
     @media (min-width: 400px) {
@@ -75,61 +74,54 @@
       cursor: pointer;
       user-select: none;
       position: relative;
-      transition: background 0.2s;
     }
 
-    .light { background: #e0d7c3; color: #111; }
-    .dark { background: #8b6f47; color: #111; }
+    .light { background: #f0d9b5; color: #111; }
+    .dark { background: #b58863; color: #111; }
 
     .square.selected {
-      background: #f1c40f !important;
-      box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+      background: #facc15 !important;
+      box-shadow: inset 0 0 12px rgba(0,0,0,0.6);
     }
     .square.highlight::after {
       content: '';
       position: absolute;
-      width: 16px;
-      height: 16px;
-      background: rgba(46, 204, 113, 0.8);
+      width: 18px;
+      height: 18px;
+      background: rgba(34, 197, 94, 0.85);
       border-radius: 50%;
-      box-shadow: 0 0 8px #2ecc71;
+      box-shadow: 0 0 10px #22c55e;
     }
 
-    /* 3D Gerçekçi Taş Görünümleri */
+    /* 3D Taş Efektleri */
     .piece {
       display: inline-block;
-      filter: drop-shadow(0 6px 4px rgba(0,0,0,0.6));
-      transform: translateZ(12px);
-      transition: transform 0.2s ease;
-    }
-    .piece:active {
-      transform: translateZ(20px) scale(1.1);
+      filter: drop-shadow(0 5px 3px rgba(0,0,0,0.7));
+      transform: translateZ(10px);
     }
 
     .white-piece {
-      color: #fff;
-      text-shadow: 0 0 2px #000, 0 2px 4px rgba(0,0,0,0.7);
+      color: #ffffff;
+      text-shadow: 0 0 2px #000, 0 3px 5px rgba(0,0,0,0.8);
     }
     .black-piece {
-      color: #1a1a1a;
-      text-shadow: 0 0 2px #fff, 0 2px 4px rgba(255,255,255,0.3);
+      color: #18181b;
+      text-shadow: 0 0 2px #fff, 0 3px 5px rgba(255,255,255,0.4);
     }
 
     .controls {
       margin-top: 15px;
-      display: flex;
-      gap: 10px;
     }
     .btn-reset {
-      background: #e74c3c;
+      background: #ef4444;
       color: #fff;
       border: none;
-      padding: 10px 20px;
-      font-size: 0.9rem;
+      padding: 8px 18px;
+      font-size: 0.85rem;
       font-weight: bold;
       border-radius: 10px;
       cursor: pointer;
-      box-shadow: 0 4px 10px rgba(231,76,60,0.4);
+      box-shadow: 0 4px 10px rgba(239,68,68,0.4);
     }
     .btn-reset:active { transform: scale(0.95); }
   </style>
@@ -140,7 +132,7 @@
     <h1>CHESS 3D | 2 Kişilik</h1>
   </header>
 
-  <div class="status" id="game-status">Sıra: <span style="color:#fff; font-weight:bold;">Beyaz</span></div>
+  <div class="status" id="game-status">Sıra: <span style="color:#fff; font-weight:bold;">Beyaz Oyuncu</span></div>
 
   <div class="board-container">
     <div class="chess-board" id="board"></div>
@@ -151,7 +143,6 @@
   </div>
 
   <script>
-    // Gerçekçi Satranç Karakterleri (Semboller)
     const pieces = {
       wR: '♖', wN: '♘', wB: '♗', wQ: '♕', wK: '♔', wP: '♙',
       bR: '♜', bN: '♞', bB: '♝', bQ: '♛', bK: '♚', bP: '♟'
@@ -180,8 +171,6 @@
         for (let c = 0; c < 8; c++) {
           const square = document.createElement('div');
           square.className = `square ${(r + c) % 2 === 0 ? 'light' : 'dark'}`;
-          square.dataset.row = r;
-          square.dataset.col = c;
 
           if (selectedSquare && selectedSquare.r === r && selectedSquare.c === c) {
             square.classList.add('selected');
@@ -206,26 +195,27 @@
     }
 
     function handleSquareClick(r, c) {
-      const clickedPiece = board[r][c];
+      const piece = board[r][c];
 
+      // 1. Daha önceden taş seçilmişse ve yeşil ışıklı bir yere tıklandıysa hamle yap
       if (selectedSquare) {
-        // Eğer geçerli hamlelerden birine tıklandıysa taşı hareket ettir
-        if (possibleMoves.some(m => m.r === r && m.c === c)) {
+        const targetMove = possibleMoves.find(m => m.r === r && m.c === c);
+        if (targetMove) {
           board[r][c] = board[selectedSquare.r][selectedSquare.c];
           board[selectedSquare.r][selectedSquare.c] = '';
           turn = turn === 'w' ? 'b' : 'w';
-          updateStatus();
           selectedSquare = null;
           possibleMoves = [];
+          updateStatus();
           renderBoard();
           return;
         }
       }
 
-      // Kendi taşını seçme
-      if (clickedPiece && clickedPiece.startsWith(turn)) {
+      // 2. Kendi sırası olan oyuncunun taşına tıklandıysa seç ve gidebileceği yerleri hesapla
+      if (piece && piece.startsWith(turn)) {
         selectedSquare = { r, c };
-        possibleMoves = getDummyMoves(r, c); // Basit hamle mantığı
+        possibleMoves = calculateValidMoves(r, c, piece);
         renderBoard();
       } else {
         selectedSquare = null;
@@ -234,25 +224,97 @@
       }
     }
 
-    // Basit ve akıcı tahta mantığı (tüm boş/rakip kareleri gösterir)
-    function getDummyMoves(r, c) {
+    // Taşların gerçek kurallarına göre hamle hesaplama
+    function calculateValidMoves(r, c, piece) {
       let moves = [];
-      const piece = board[r][c];
-      
-      // Piyonlar için örnek mantık
-      let dir = piece.startsWith('w') ? -1 : 1;
-      if (r + dir >= 0 && r + dir < 8 && board[r + dir][c] === '') {
-        moves.push({ r: r + dir, c: c });
-      }
-      
-      // Çevredeki serbest kareleri gösteren esnek dokunmatik hamleler
-      for (let i = Math.max(0, r-2); i <= Math.min(7, r+2); i++) {
-        for (let j = Math.max(0, c-2); j <= Math.min(7, c+2); j++) {
-          if (board[i][j] === '' || !board[i][j].startsWith(turn)) {
-            moves.push({ r: i, c: j });
+      let type = piece[1];
+      let color = piece[0];
+
+      let addMove = (row, col) => {
+        if (row >= 0 && row < 8 && col >= 0 && col < 8) {
+          const target = board[row][col];
+          if (target === '') {
+            moves.push({ r: row, c: col });
+            return true; // Boşsa devam edebilir
+          } else if (!target.startsWith(color)) {
+            moves.push({ r: row, c: col }); // Rakip taş yenebilir
+            return false; // Rakip taşın arkasına geçemez
+          }
+          return false; // Kendi taşının üzerinden atlayamaz
+        }
+        return false;
+      };
+
+      if (type === 'P') { // Piyon
+        let dir = (color === 'w') ? -1 : 1;
+        let startRow = (color === 'w') ? 6 : 1;
+
+        // Düz 1 adım
+        if (r + dir >= 0 && r + dir < 8 && board[r + dir][c] === '') {
+          moves.push({ r: r + dir, c: c });
+          // Başlangıçtan 2 adım
+          if (r === startRow && board[r + dir * 2][c] === '') {
+            moves.push({ r: r + dir * 2, c: c });
           }
         }
+        // Çapraz yeme
+        [-1, 1].forEach(dc => {
+          let tr = r + dir, tc = c + dc;
+          if (tr >= 0 && tr < 8 && tc >= 0 && tc < 8) {
+            let target = board[tr][tc];
+            if (target !== '' && !target.startsWith(color)) {
+              moves.push({ r: tr, c: tc });
+            }
+          }
+        });
+      } 
+      else if (type === 'N') { // At
+        let knightMoves = [
+          [-2,-1], [-2,1], [-1,-2], [-1,2],
+          [1,-2], [1,2], [2,-1], [2,1]
+        ];
+        knightMoves.forEach(m => {
+          let tr = r + m[0], tc = c + m[1];
+          if (tr >= 0 && tr < 8 && tc >= 0 && tc < 8) {
+            let target = board[tr][tc];
+            if (target === '' || !target.startsWith(color)) {
+              moves.push({ r: tr, c: tc });
+            }
+          }
+        });
       }
+      else if (type === 'B' || type === 'R' || type === 'Q') { // Fil, Kale, Vezir
+        let dirs = [];
+        if (type === 'R' || type === 'Q') dirs.push([-1,0], [1,0], [0,-1], [0,1]);
+        if (type === 'B' || type === 'Q') dirs.push([-1,-1], [-1,1], [1,-1], [1,1]);
+
+        dirs.forEach(d => {
+          let step = 1;
+          while (true) {
+            let tr = r + d[0] * step;
+            let tc = c + d[1] * step;
+            if (!addMove(tr, tc)) break;
+            step++;
+          }
+        });
+      }
+      else if (type === 'K') { // Şah
+        let kingMoves = [
+          [-1,-1], [-1,0], [-1,1],
+          [0,-1], [0,1],
+          [1,-1], [1,0], [1,1]
+        ];
+        kingMoves.forEach(m => {
+          let tr = r + m[0], tc = c + m[1];
+          if (tr >= 0 && tr < 8 && tc >= 0 && tc < 8) {
+            let target = board[tr][tc];
+            if (target === '' || !target.startsWith(color)) {
+              moves.push({ r: tr, c: tc });
+            }
+          }
+        });
+      }
+
       return moves;
     }
 
@@ -261,7 +323,7 @@
       if (turn === 'w') {
         statusEl.innerHTML = 'Sıra: <span style="color:#fff; font-weight:bold;">Beyaz Oyuncu</span>';
       } else {
-        statusEl.innerHTML = 'Sıra: <span style="color:#f39c12; font-weight:bold;">Siyah Oyuncu</span>';
+        statusEl.innerHTML = 'Sıra: <span style="color:#fbbf24; font-weight:bold;">Siyah Oyuncu</span>';
       }
     }
 
