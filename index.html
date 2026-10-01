@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Muammer vs Enes | 3D Arena Satranç</title>
+  <title>Muammer vs Enes | Online 3D Satranç</title>
+  <!-- Ücretsiz PeerJS Kütüphanesi (İnternetten iki cihazı birbirine bağlamak için) -->
+  <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -49,15 +51,47 @@
       text-align: center; margin-bottom: 6px; z-index: 2;
     }
     header h1 {
-      font-size: 1.4rem;
+      font-size: 1.3rem;
       background: linear-gradient(45deg, #00f5d4, #7000ff, #ff007f);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      letter-spacing: 1px;
       font-weight: 900;
     }
 
-    /* Oyuncu Bilgi ve Skor Kartları */
+    /* Oda Bağlantı Paneli */
+    .lobby-panel {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px);
+      padding: 15px;
+      border-radius: 15px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      text-align: center;
+      margin-bottom: 10px;
+      width: 100%;
+      max-width: 350px;
+      z-index: 10;
+    }
+    .lobby-panel input {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: none;
+      width: 70%;
+      margin-top: 5px;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+    .lobby-panel button {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: none;
+      background: #00f5d4;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 5px;
+    }
+
+    /* Oyuncu Kartları */
     .players-bar {
       display: flex;
       justify-content: space-between;
@@ -73,7 +107,6 @@
       border-radius: 12px;
       text-align: center;
       backdrop-filter: blur(10px);
-      transition: all 0.3s;
     }
     .player-card.active-turn {
       border-color: #00f5d4;
@@ -81,9 +114,8 @@
       background: rgba(0, 245, 212, 0.1);
     }
     .player-name { font-size: 0.85rem; font-weight: bold; color: #ffd166; }
-    .player-timer { font-size: 0.95rem; font-family: monospace; font-weight: 900; color: #ef4444; margin-top: 2px; }
 
-    /* Tahta ve Yenen Taş Alanı */
+    /* Tahta Alanı */
     .arena {
       display: flex; align-items: center; gap: 6px; z-index: 2;
     }
@@ -96,14 +128,14 @@
       padding: 4px; gap: 3px; font-size: 1rem; overflow-y: auto;
     }
     .captured-label {
-      font-size: 0.55rem; opacity: 0.5; border-bottom: 1px solid rgba(255,255,255,0.2); width: 100%; text-align: center; padding-bottom: 2px;
+      font-size: 0.55rem; opacity: 0.5; border-bottom: 1px solid rgba(255,255,255,0.2); width: 100%; text-align: center;
     }
 
     .board-frame {
       padding: 6px;
       background: linear-gradient(135deg, #1b263b, #0d1b2a);
       border-radius: 16px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.8), inset 0 1px 2px rgba(255,255,255,0.2);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.8);
       border: 2px solid #415a77;
     }
     .chess-grid {
@@ -114,19 +146,12 @@
       border: 2px solid #111;
     }
 
-    @media (min-width: 400px) {
-      .chess-grid { width: 350px; height: 350px; }
-      .captured-box { height: 350px; }
-    }
-
     .cell {
       display: flex; align-items: center; justify-content: center;
       font-size: 2rem; cursor: pointer; user-select: none; position: relative;
-      transition: background 0.15s;
     }
     .cell.light { background: #e0e1dd; color: #1b263b; }
     .cell.dark { background: #415a77; color: #f8f9fa; }
-
     .cell.selected { background: #ffd166 !important; }
     .cell.movable::after {
       content: '';
@@ -134,15 +159,10 @@
       width: 14px; height: 14px;
       background: #06d6a0;
       border-radius: 50%;
-      box-shadow: 0 0 8px #06d6a0;
     }
+    .chess-piece { display: inline-block; filter: drop-shadow(0 3px 2px rgba(0,0,0,0.8)); }
 
-    .chess-piece {
-      display: inline-block;
-      filter: drop-shadow(0 3px 2px rgba(0,0,0,0.8));
-    }
-
-    /* Bitiş Ekranı Modal */
+    /* Modal */
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0, 0, 0, 0.85);
@@ -152,47 +172,47 @@
     .modal-box {
       background: #1b263b; padding: 25px 35px; border-radius: 20px;
       border: 2px solid #00f5d4; text-align: center;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.9);
     }
     .modal-box h2 { font-size: 1.5rem; color: #00f5d4; margin-bottom: 8px; }
     .modal-box p { font-size: 0.95rem; margin-bottom: 15px; opacity: 0.9; }
-
-    .controls { margin-top: 10px; z-index: 2; }
     .btn-action {
       background: #ff007f; color: #fff; border: none;
       padding: 8px 18px; font-size: 0.85rem; font-weight: bold;
       border-radius: 10px; cursor: pointer;
-      box-shadow: 0 4px 12px rgba(255, 0, 127, 0.4);
     }
-    .btn-action:active { transform: scale(0.95); }
   </style>
 </head>
 <body>
 
-  <!-- Arka Planda Kayan Yazı -->
   <div class="bg-ticker">
-    <div class="ticker-line">ENES MAAŞINA ZAM İŞİNE SON • MUAMMER ARENA • </div>
     <div class="ticker-line">ENES MAAŞINA ZAM İŞİNE SON • MUAMMER ARENA • </div>
     <div class="ticker-line">ENES MAAŞINA ZAM İŞİNE SON • MUAMMER ARENA • </div>
   </div>
 
   <header>
-    <h1>CHESS ARENA 3D</h1>
+    <h1>ONLINE CHESS ARENA</h1>
   </header>
 
-  <!-- Oyuncu ve Süre Kartları -->
-  <div class="players-bar">
-    <div class="player-card active-turn" id="card-white">
-      <div class="player-name">Muammer (Beyaz)</div>
-      <div class="player-timer" id="timer-white">30s</div>
-    </div>
-    <div class="player-card" id="card-black">
-      <div class="player-name">Enes (Siyah)</div>
-      <div class="player-timer" id="timer-black">30s</div>
+  <!-- Oda Kurma / Katılma Paneli -->
+  <div class="lobby-panel" id="lobbyPanel">
+    <h3 style="font-size: 1rem; color: #00f5d4; margin-bottom: 5px;">Oda Bağlantısı</h3>
+    <p id="myPeerId" style="font-size: 0.8rem; opacity: 0.8; word-break: break-all;">Bağlantı kodunuz oluşturuluyor...</p>
+    <div style="margin-top: 10px;">
+      <input type="text" id="partnerIdInput" placeholder="Arkadaşın Kodunu Yaz">
+      <br>
+      <button onclick="connectToPartner()">Odaya Bağlan</button>
     </div>
   </div>
 
-  <!-- Oyun Alanı -->
+  <div class="players-bar">
+    <div class="player-card active-turn" id="card-white">
+      <div class="player-name">Muammer (Beyaz)</div>
+    </div>
+    <div class="player-card" id="card-black">
+      <div class="player-name">Enes (Siyah)</div>
+    </div>
+  </div>
+
   <div class="arena">
     <div class="captured-box" id="captured-black">
       <div class="captured-label">Alınan</div>
@@ -207,16 +227,11 @@
     </div>
   </div>
 
-  <div class="controls">
-    <button class="btn-action" onclick="initGame()">Oyunu Sıfırla</button>
-  </div>
-
-  <!-- Kazanan Popup -->
   <div class="modal-overlay" id="endModal">
     <div class="modal-box">
       <h2 id="modalTitle">OYUN BİTTİ</h2>
       <p id="modalDesc">Kazanan belirlendi!</p>
-      <button class="btn-action" onclick="initGame()">Tekrar Oyna</button>
+      <button class="btn-action" onclick="location.reload()">Yeniden Başla</button>
     </div>
   </div>
 
@@ -237,44 +252,62 @@
       ['wR','wN','wB','wQ','wK','wB','wN','wR']
     ];
 
-    let currentTurn = 'w'; // 'w' (Muammer), 'b' (Enes)
+    let currentTurn = 'w';
     let activeSelection = null;
     let validMoves = [];
     let lostByWhite = [];
     let lostByBlack = [];
 
-    let timeLeftW = 30;
-    let timeLeftB = 30;
-    let timerRef = null;
-    let matchEnded = false;
+    // Online Ağ Değişkenleri
+    let peer = null;
+    let conn = null;
+    let myRole = null; // 'w' (Muammer) veya 'b' (Enes)
 
-    function runTimer() {
-      clearInterval(timerRef);
-      timerRef = setInterval(() => {
-        if (matchEnded) return;
+    function initPeer() {
+      peer = new Peer();
+      peer.on('open', (id) => {
+        document.getElementById('myPeerId').innerText = "Oda Kodun: " + id;
+        myRole = 'w'; // Odayı açan Beyaz (Muammer) olur
+      });
 
-        if (currentTurn === 'w') {
-          timeLeftW--;
-          if (timeLeftW <= 0) {
-            finishMatch("Enes Kazandı!", "Muammer'in süresi doldu.");
-          }
-        } else {
-          timeLeftB--;
-          if (timeLeftB <= 0) {
-            finishMatch("Muammer Kazandı!", "Enes'in süresi doldu.");
-          }
-        }
-        refreshUI();
-      }, 1000);
+      peer.on('connection', (connection) => {
+        conn = connection;
+        setupConnection();
+        alert("Enes odaya bağlandı! Oyun başlıyor.");
+        document.getElementById('lobbyPanel').style.display = 'none';
+      });
     }
 
-    function refreshUI() {
-      document.getElementById('timer-white').innerText = `${timeLeftW}s`;
-      document.getElementById('timer-black').innerText = `${timeLeftB}s`;
+    function connectToPartner() {
+      const code = document.getElementById('partnerIdInput').value.trim();
+      if (!code) return alert("Lütfen oda kodunu gir!");
 
+      conn = peer.connect(code);
+      myRole = 'b'; // Katılan Siyah (Enes) olur
+      setupConnection();
+      alert("Odaya bağlanıldı! Oyun başlıyor.");
+      document.getElementById('lobbyPanel').style.display = 'none';
+    }
+
+    function setupConnection() {
+      conn.on('data', (data) => {
+        if (data.type === 'move') {
+          boardState = data.board;
+          currentTurn = data.turn;
+          lostByWhite = data.lostW;
+          lostByBlack = data.lostB;
+          if (data.gameOver) {
+            triggerEnd(data.winnerTitle, data.winnerDesc);
+          }
+          drawBoard();
+          updateTurnUI();
+        }
+      });
+    }
+
+    function updateTurnUI() {
       const cardW = document.getElementById('card-white');
       const cardB = document.getElementById('card-black');
-
       if (currentTurn === 'w') {
         cardW.classList.add('active-turn');
         cardB.classList.remove('active-turn');
@@ -296,17 +329,16 @@
           if (activeSelection && activeSelection.r === r && activeSelection.c === c) {
             cell.classList.add('selected');
           }
-
           if (validMoves.some(m => m.r === r && m.c === c)) {
             cell.classList.add('movable');
           }
 
           const code = boardState[r][c];
           if (code) {
-            const pieceSpan = document.createElement('span');
-            pieceSpan.className = 'chess-piece';
-            pieceSpan.innerText = glyphs[code];
-            cell.appendChild(pieceSpan);
+            const span = document.createElement('span');
+            span.className = 'chess-piece';
+            span.innerText = glyphs[code];
+            cell.appendChild(span);
           }
 
           cell.addEventListener('click', () => onCellTouch(r, c));
@@ -322,23 +354,21 @@
 
       boxW.innerHTML = '<div class="captured-label">Alınan</div>';
       lostByBlack.forEach(p => {
-        const s = document.createElement('span');
-        s.style.fontSize = '1rem';
-        s.innerText = glyphs[p];
-        boxW.appendChild(s);
+        let s = document.createElement('span'); s.style.fontSize = '1rem'; s.innerText = glyphs[p]; boxW.appendChild(s);
       });
 
       boxB.innerHTML = '<div class="captured-label">Alınan</div>';
       lostByWhite.forEach(p => {
-        const s = document.createElement('span');
-        s.style.fontSize = '1rem';
-        s.innerText = glyphs[p];
-        boxB.appendChild(s);
+        let s = document.createElement('span'); s.style.fontSize = '1rem'; s.innerText = glyphs[p]; boxB.appendChild(s);
       });
     }
 
     function onCellTouch(r, c) {
-      if (matchEnded) return;
+      if (myRole !== currentTurn) {
+        alert("Sıra sende değil!");
+        return;
+      }
+
       const piece = boardState[r][c];
 
       if (activeSelection) {
@@ -349,29 +379,43 @@
           boardState[r][c] = boardState[activeSelection.r][activeSelection.c];
           boardState[activeSelection.r][activeSelection.c] = '';
 
+          let isOver = false;
+          let winTitle = "";
+          let winDesc = "";
+
           if (victim !== '') {
-            if (victim.startsWith('w')) {
-              lostByWhite.push(victim);
-            } else {
-              lostByBlack.push(victim);
-            }
+            if (victim.startsWith('w')) lostByWhite.push(victim);
+            else lostByBlack.push(victim);
 
             if (victim[1] === 'K') {
-              drawBoard();
+              isOver = true;
               let victor = victim.startsWith('w') ? "Enes" : "Muammer";
-              finishMatch(`${victor} Kazandı!`, "Şah mat edildi!");
-              return;
+              winTitle = `${victor} Kazandı!`;
+              winDesc = "Şah mat edildi!";
             }
           }
 
           currentTurn = currentTurn === 'w' ? 'b' : 'w';
-          if (currentTurn === 'w') timeLeftW = 30;
-          else timeLeftB = 30;
-
           activeSelection = null;
           validMoves = [];
-          refreshUI();
+
+          if (conn && conn.open) {
+            conn.send({
+              type: 'move',
+              board: boardState,
+              turn: currentTurn,
+              lostW: lostByWhite,
+              lostB: lostByBlack,
+              gameOver: isOver,
+              winnerTitle: winTitle,
+              winnerDesc: winDesc
+            });
+          }
+
+          if (isOver) triggerEnd(winTitle, winDesc);
+
           drawBoard();
+          updateTurnUI();
           return;
         }
       }
@@ -391,17 +435,11 @@
       let list = [];
       let type = piece[1];
       let color = piece[0];
-
       let checkDir = (row, col) => {
         if (row >= 0 && row < 8 && col >= 0 && col < 8) {
           let dest = boardState[row][col];
-          if (dest === '') {
-            list.push({ r: row, c: col });
-            return true;
-          } else if (!dest.startsWith(color)) {
-            list.push({ r: row, c: col });
-            return false;
-          }
+          if (dest === '') { list.push({ r: row, c: col }); return true; }
+          else if (!dest.startsWith(color)) { list.push({ r: row, c: col }); return false; }
           return false;
         }
         return false;
@@ -412,17 +450,13 @@
         let base = (color === 'w') ? 6 : 1;
         if (r + step >= 0 && r + step < 8 && boardState[r + step][c] === '') {
           list.push({ r: r + step, c: c });
-          if (r === base && boardState[r + step * 2][c] === '') {
-            list.push({ r: r + step * 2, c: c });
-          }
+          if (r === base && boardState[r + step * 2][c] === '') list.push({ r: r + step * 2, c: c });
         }
         [-1, 1].forEach(dc => {
           let tr = r + step, tc = c + dc;
           if (tr >= 0 && tr < 8 && tc >= 0 && tc < 8) {
             let target = boardState[tr][tc];
-            if (target !== '' && !target.startsWith(color)) {
-              list.push({ r: tr, c: tc });
-            }
+            if (target !== '' && !target.startsWith(color)) list.push({ r: tr, c: tc });
           }
         });
       } else if (type === 'N') {
@@ -431,16 +465,13 @@
           let tr = r + j[0], tc = c + j[1];
           if (tr >= 0 && tr < 8 && tc >= 0 && tc < 8) {
             let target = boardState[tr][tc];
-            if (target === '' || !target.startsWith(color)) {
-              list.push({ r: tr, c: tc });
-            }
+            if (target === '' || !target.startsWith(color)) list.push({ r: tr, c: tc });
           }
         });
       } else if (type === 'B' || type === 'R' || type === 'Q') {
         let dirs = [];
         if (type === 'R' || type === 'Q') dirs.push([-1,0], [1,0], [0,-1], [0,1]);
         if (type === 'B' || type === 'Q') dirs.push([-1,-1], [-1,1], [1,-1], [1,1]);
-
         dirs.forEach(d => {
           let s = 1;
           while (true) {
@@ -455,49 +486,23 @@
           let tr = r + s[0], tc = c + s[1];
           if (tr >= 0 && tr < 8 && tc >= 0 && tc < 8) {
             let target = boardState[tr][tc];
-            if (target === '' || !target.startsWith(color)) {
-              list.push({ r: tr, c: tc });
-            }
+            if (target === '' || !target.startsWith(color)) list.push({ r: tr, c: tc });
           }
         });
       }
       return list;
     }
 
-    function finishMatch(title, desc) {
-      matchEnded = true;
-      clearInterval(timerRef);
+    function triggerEnd(title, desc) {
       document.getElementById('modalTitle').innerText = title;
       document.getElementById('modalDesc').innerText = desc;
       document.getElementById('endModal').style.display = 'flex';
     }
 
-    function initGame() {
-      boardState = [
-        ['bR','bN','bB','bQ','bK','bB','bN','bR'],
-        ['bP','bP','bP','bP','bP','bP','bP','bP'],
-        ['','','','','','','',''],
-        ['','','','','','','',''],
-        ['','','','','','','',''],
-        ['','','','','','','',''],
-        ['wP','wP','wP','wP','wP','wP','wP','wP'],
-        ['wR','wN','wB','wQ','wK','wB','wN','wR']
-      ];
-      currentTurn = 'w';
-      activeSelection = null;
-      validMoves = [];
-      lostByWhite = [];
-      lostByBlack = [];
-      timeLeftW = 30;
-      timeLeftB = 30;
-      matchEnded = false;
-      document.getElementById('endModal').style.display = 'none';
-      refreshUI();
+    window.onload = () => {
+      initPeer();
       drawBoard();
-      runTimer();
-    }
-
-    window.onload = initGame;
+    };
   </script>
 </body>
 </html>
