@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="tr" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D Online Satranç - 3D Online Multiplayer Chess</title>
+    <!-- Tailwind CSS for modern responsive UI -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400,500,600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js for 3D Rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Chess.js for rule validation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <!-- Tone.js for audio feedback -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; touch-action: manipulation; background-color: #0f172a; color: #f8fafc; overflow-x: hidden; }
+        canvas { display: block; outline: none; }
+        .glass { background: rgba(30, 41, 59, 0.75); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+    </style>
+</head>
+<body class="h-full flex flex-col antialiased select-none">
+
+    <header class="glass sticky top-0 z-50 px-4 py-3 flex items-center justify-between shadow-lg">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-tr from-amber-600 to-amber-400 p-2.5 rounded-xl shadow-md text-slate-950 font-bold text-lg">
+                <i class="fa-solid fa-chess-king"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-base md:text-lg tracking-tight bg-gradient-to-r from-amber-200 to-amber-400 bg-clip-text text-transparent">3D Satranç Online</h1>
+                <p class="text-xs text-slate-400">Gerçek Zamanlı Çok Oyunculu</p>
+            </div>
+        </div>
+        <div id="connection-badge" class="flex items-center space-x-2 bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700 text-xs font-medium">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" id="conn-dot"></span>
+            <span id="conn-text" class="text-slate-300">Bağlanıyor...</span>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col md:flex-row relative overflow-hidden">
+
+        <!-- Sidebar / Lobi & Kontroller -->
+        <div id="sidebar" class="w-full md:w-96 glass flex flex-col p-4 md:p-6 z-20 shadow-2xl overflow-y-auto custom-scrollbar transition-all duration-300">
+            
+            <!-- Lobi Görünümü (Oda Oluştur / Katıl) -->
+            <div id="view-lobby" class="flex flex-col space-y-6 my-auto">
+                <div class="text-center space-y-2">
+                    <div class="inline-flex p-4 rounded-full bg-amber-500/10 text-amber-400 mb-2 border border-amber-500/20 shadow-inner">
+                        <i class="fa-solid fa-chess-board text-4xl"></i>
+                    </div>
+                    <h2 class="text-xl md:text-2xl font-bold text-white">Arkadaşınla Satranç Oyna</h2>
+                    <p class="text-sm text-slate-400">Yeni bir oda kurup arkadaşına link gönder ya da mevcut oda koduyla katıl.</p>
+                </div>
+
+                <div class="space-y-3 pt-2">
+                    <button onclick="createRoom()" class="w-full py-3.5 px-4 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-bold rounded-xl shadow-lg transition transform active:scale-95 flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-plus-circle text-lg"></i>
+                        <span>Yeni Oda Oluştur</span>
+                    </button>
+                    
+                    <div class="relative flex py-2 items-center">
+                        <div class="flex-grow border-t border-slate-700"></div>
+                        <span class="flex-shrink mx-4 text-slate-500 text-xs font-semibold uppercase">veya kod ile katıl</span>
+                        <div class="flex-grow border-t border-slate-700"></div>
+                    </div>
+
+                    <div class="flex space-x-2">
+                        <input type="text" id="input-room-code" placeholder="Oda Kodunu Girin" class="flex-1 bg-slate-900/90 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 text-sm uppercase tracking-widest font-mono">
+                        <button onclick="joinRoomFromInput()" class="px-5 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 font-semibold rounded-xl transition text-white text-sm shadow">
+                            Katıl
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-800/80 text-xs text-slate-400 space-y-2">
+                    <div class="font-semibold text-slate-300 flex items-center space-x-1.5">
+                        <i class="fa-solid fa-circle-info text-amber-400"></i>
+                        <span>Nasıl Oynanır?</span>
+                    </div>
+                    <ul class="list-disc list-inside space-y-1 text-slate-400">
+                        <li>Tahtayı döndürmek için ekrana tıklayıp sürükleyin.</li>
+                        <li>Taşları seçmek ve hareket ettirmek için dokunmanız yeterlidir.</li>
+                        <li>Oda kurulunca çıkan bağlantıyı kopyalayıp arkadaşınıza atın.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Oyun İçi Kontrol Paneli -->
+            <div id="view-game" class="hidden flex flex-col space-y-5 my-auto">
+                <div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-800 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs text-slate-400 font-medium">Oda Kodu:</span>
+                        <div class="flex items-center space-x-2">
+                            <span id="display-room-code" class="font-mono font-bold text-amber-400 tracking-wider">---</span>
+                            <button onclick="copyRoomLink()" class="p-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 transition text-xs" title="Linki Kopyala">
+                                <i class="fa-solid fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center border-t border-slate-800/80 pt-3">
+                        <span class="text-xs text-slate-400 font-medium">Senin Rengin:</span>
+                        <span id="display-my-role" class="px-2.5 py-1 rounded-full text-xs font-bold uppercase">---</span>
+                    </div>
+                </div>
+
+                <!-- Durum Göstergesi -->
+                <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-700/60 text-center space-y-2 shadow-inner">
+                    <div id="game-status-text" class="font-bold text-sm text-amber-300">Rakip bekleniyor...</div>
+                    <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+                        <div id="turn-indicator-bar" class="bg-gradient-to-r from-amber-500 to-amber-300 h-full w-full transition-all duration-300"></div>
+                    </div>
+                </div>
+
+                <!-- Yakalanan Taşlar -->
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center text-xs text-slate-400">
+                        <span>Alınan Beyaz Taşlar:</span>
+                        <div id="captured-white" class="flex space-x-1 text-base min-h-[24px]"></div>
+                    </div>
+                    <div class="flex justify-between items-center text-xs text-slate-400 border-t border-slate-800 pt-2">
+                        <span>Alınan Siyah Taşlar:</span>
+                        <div id="captured-black" class="flex space-x-1 text-base min-h-[24px]"></div>
+                    </div>
+                </div>
+
+                <!-- Aksiyon Butonları -->
+                <div class="space-y-2 pt-2">
+                    <button onclick="resetCamera()" class="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium rounded-xl border border-slate-700 transition text-sm flex items-center justify-center space-x-2 shadow">
+                        <i class="fa-solid fa-video"></i>
+                        <span>Kamerayı Sıfırla</span>
+                    </button>
+                    <button onclick="leaveRoom()" class="w-full py-2.5 px-4 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-medium rounded-xl border border-rose-500/30 transition text-sm flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                        <span>Odadan Ayrıl</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <div id="canvas-container" class="flex-1 relative bg-gradient-to-b from-slate-900 to-slate-950 cursor-grab active:cursor-grabbing">
+            <!-- Canvas buraya enjekte edilecek -->
+            <div id="board-loading" class="absolute inset-0 flex items-center justify-center bg-slate-950/80 z-10 backdrop-blur-sm transition-opacity duration-500">
+                <div class="flex flex-col items-center space-y-3">
+                    <div class="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                    <span class="text-sm font-medium text-slate-300">3D Sahne Hazırlanıyor...</span>
+                </div>
+            </div>
+            
+            <!-- Dokunmatik / Bilgi İpuçları Overlay -->
+            <div class="absolute bottom-4 left-4 right-4 md:left-auto md:right-4 bg-slate-900/80 backdrop-blur-md px-4 py-2 rounded-xl border border-slate-800 text-xs text-slate-400 pointer-events-none flex items-center justify-between md:justify-end space-x-4 shadow-lg">
+                <span><i class="fa-solid fa-hand text-amber-400 mr-1.5"></i> Tahta Döndür: Sürükle</span>
+                <span><i class="fa-solid fa-chess-pawn text-amber-400 mr-1.5"></i> Hamle: Tıkla</span>
+            </div>
+        </div>
+
+    </main>
+
+    <div id="custom-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="glass max-w-sm w-full p-6 rounded-2xl shadow-2xl border border-slate-700/80 space-y-4 text-center animate-in fade-in zoom-in duration-200">
+            <div id="modal-icon" class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto text-xl border border-amber-500/30">
+                <i class="fa-solid fa-circle-exclamation"></i>
+            </div>
+            <h3 id="modal-title" class="text-lg font-bold text-white">Bildirim</h3>
+            <p id="modal-desc" class="text-sm text-slate-300">Açıklama metni buraya gelecek.</p>
+            <button onclick="closeModal()" class="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl transition shadow">
+                Tamam
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase and Game Variables
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'chess-game-3d-prod';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "AIzaSyDummyKeyForLocalSandboxTestingOnlyABC123",
+            authDomain: "dummy-project.firebaseapp.com",
+            projectId: "dummy-project",
+            storageBucket: "dummy-project.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef"
+        };
+
+        let app, db, auth, currentUser = null;
+        let currentRoomId = null;
+        let myColor = null; // 'w' or 'b'
+        let roomUnsubscribe = null;
+
+        // Chess & 3D Variables
+        let chess = new Chess();
+        let scene, camera, renderer, raycaster, mouse;
+        let boardSquares = [];
+        let pieceMeshes = {};
+        let selectedSquare = null;
+        let validMoves = [];
+        let highlightedMeshes = [];
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let cameraAngle = { theta: 0, phi: Math.PI / 4, radius: 14 };
+
+        // Audio synthesizer via Tone.js
+        let synth = null;
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                currentUser = auth.currentUser;
+                updateConnectionStatus(true, "Bağlandı");
+            } catch (err) {
+                console.warn("Firebase offline or simulation mode:", err);
+                updateConnectionStatus(false, "Çevrimdışı Mod");
+                currentUser = { uid: 'local-user-' + Math.random().toString(36).substring(2, 9) };
+            }
+
+            // URL üzerinden oda parametresi kontrolü
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomParam = urlParams.get('room');
+            if (roomParam) {
+                document.getElementById('input-room-code').value = roomParam;
+                joinRoom(roomParam);
+            }
+
+            // Audio başlatma
+            try {
+                synth = new Tone.Synth().toDestination();
+            } catch (e) {
+                console.log("Audio context skipped");
+            }
+
+            init3DScene();
+            initListeners();
+        });
+
+        function updateConnectionStatus(online, text) {
+            const dot = document.getElementById('conn-dot');
+            const txt = document.getElementById('conn-text');
+            if (online) {
+                dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500";
+                txt.textContent = text;
+            } else {
+                dot.className = "w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse";
+                txt.textContent = text;
+            }
+        }
+
+        function init3DScene() {
+            const container = document.getElementById('canvas-container');
+            
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x0f172a, 0.025);
+
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+            updateCameraPosition();
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            // Işıklandırma
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xfff5ea, 1.2);
+            dirLight.position.set(10, 20, 10);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            scene.add(dirLight);
+
+            const pointLight = new THREE.PointLight(0x38bdf8, 1, 20);
+            pointLight.position.set(-10, 10, -10);
+            scene.add(pointLight);
+
+            // Tahta ve Zemin Oluşturma
+            createChessboard3D();
+            updatePieces3D();
+
+            // Loading gizle
+            setTimeout(() => {
+                const loader = document.getElementById('board-loading');
+                if (loader) loader.style.opacity = '0';
+                setTimeout(() => loader?.remove(), 500);
+            }, 500);
+
+            // Pencere Boyutlandırma
+            window.addEventListener('resize', onWindowResize);
+            
+            // Mouse / Touch Olayları
+            let isMouseDown = false;
+            let startX = 0, startY = 0;
+
+            container.addEventListener('mousedown', (e) => {
+                isMouseDown = true;
+                startX = e.clientX;
+                startY = e.clientY;
+            });
+
+            container.addEventListener('mousemove', (e) => {
+                if (!isMouseDown) return;
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+                startX = e.clientX;
+                startY = e.clientY;
+
+                cameraAngle.theta -= deltaX * 0.008;
+                cameraAngle.phi = Math.max(0.1, Math.min(Math.PI / 2 - 0.05, cameraAngle.phi - deltaY * 0.008));
+                updateCameraPosition();
+            });
+
+            window.addEventListener('mouseup', () => { isMouseDown = false; });
+
+            // Touch desteği mobil için
+            container.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    isMouseDown = true;
+                    startX = e.touches[0].clientX;
+                    startY = e.touches[0].clientY;
+                }
+            }, { passive: true });
+
+            container.addEventListener('touchmove', (e) => {
+                if (!isMouseDown || e.touches.length !== 1) return;
+                const deltaX = e.touches[0].clientX - startX;
+                const deltaY = e.touches[0].clientY - startY;
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+
+                cameraAngle.theta -= deltaX * 0.008;
+                cameraAngle.phi = Math.max(0.1, Math.min(Math.PI / 2 - 0.05, cameraAngle.phi - deltaY * 0.008));
+                updateCameraPosition();
+            }, { passive: true });
+
+            window.addEventListener('touchend', () => { isMouseDown = false; });
+
+            // Tıklama / Seçim Olayı
+            container.addEventListener('click', (e) => {
+                const rect = renderer.domElement.getBoundingClientRect();
+                mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(scene.children, true);
+
+                if (intersects.length > 0) {
+                    let obj = intersects[0].object;
+                    while (obj && !obj.userData && obj.parent) {
+                        obj = obj.parent;
+                    }
+                    if (obj && obj.userData) {
+                        if (obj.userData.type === 'square') {
+                            han
