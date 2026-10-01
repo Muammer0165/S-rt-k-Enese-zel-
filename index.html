@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Muammer | 3D Gerçekçi Satranç</title>
+  <title>Muammer | 3D Pro Satranç</title>
   <style>
     * {
       box-sizing: border-box;
@@ -21,32 +21,113 @@
       justify-content: center;
       padding: 10px;
       overflow: hidden;
+      position: relative;
     }
+
+    /* Arka Planda Kayan Yazı Animasyonu */
+    .bg-ticker {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: -1;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      opacity: 0.12;
+    }
+    .ticker-line {
+      white-space: nowrap;
+      font-size: 2.5rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      color: #fbbf24;
+      animation: tickerScroll 20s linear infinite;
+    }
+    .ticker-line:nth-child(even) {
+      animation-direction: reverse;
+      animation-duration: 25s;
+      color: #f43f5e;
+    }
+
+    @keyframes tickerScroll {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+
     header {
       text-align: center;
-      margin-bottom: 8px;
+      margin-bottom: 5px;
+      z-index: 2;
     }
     header h1 {
-      font-size: 1.4rem;
+      font-size: 1.3rem;
       color: #fbbf24;
       text-shadow: 0 2px 8px rgba(0,0,0,0.8);
       letter-spacing: 1px;
     }
-    .status {
-      font-size: 0.95rem;
-      background: rgba(255, 255, 255, 0.1);
-      padding: 6px 14px;
-      border-radius: 20px;
-      margin-bottom: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+
+    .game-info {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      max-width: 420px;
+      padding: 5px 10px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      z-index: 2;
     }
-    
-    /* 3D Görünümlü Satranç Tahtası */
+    .timer-box {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid #ef4444;
+      padding: 4px 10px;
+      border-radius: 8px;
+      color: #fca5a5;
+    }
+    .timer-box.active {
+      background: #ef4444;
+      color: #fff;
+    }
+
+    .game-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 5px 0;
+      z-index: 2;
+    }
+
+    .captured-panel {
+      width: 40px;
+      height: 330px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 5px;
+      gap: 4px;
+      font-size: 1.2rem;
+      overflow-y: auto;
+    }
+    .captured-title {
+      font-size: 0.6rem;
+      opacity: 0.6;
+      text-align: center;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      width: 100%;
+      padding-bottom: 2px;
+    }
+
     .board-container {
       perspective: 1000px;
-      padding: 8px;
-      background: rgba(0, 0, 0, 0.5);
-      border-radius: 16px;
+      padding: 6px;
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 14px;
       box-shadow: 0 20px 40px rgba(0,0,0,0.8);
       border: 2px solid #334155;
     }
@@ -55,22 +136,22 @@
       display: grid;
       grid-template-columns: repeat(8, 1fr);
       grid-template-rows: repeat(8, 1fr);
-      width: 350px;
-      height: 350px;
+      width: 320px;
+      height: 320px;
       border: 3px solid #0f172a;
-      transform: rotateX(12deg);
+      transform: rotateX(10deg);
       transform-style: preserve-3d;
     }
 
     @media (min-width: 400px) {
-      .chess-board { width: 380px; height: 380px; }
+      .chess-board { width: 350px; height: 350px; }
     }
 
     .square {
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 2.2rem;
+      font-size: 2rem;
       cursor: pointer;
       user-select: none;
       position: relative;
@@ -86,18 +167,17 @@
     .square.highlight::after {
       content: '';
       position: absolute;
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       background: rgba(34, 197, 94, 0.85);
       border-radius: 50%;
-      box-shadow: 0 0 10px #22c55e;
+      box-shadow: 0 0 8px #22c55e;
     }
 
-    /* 3D Taş Efektleri */
     .piece {
       display: inline-block;
-      filter: drop-shadow(0 5px 3px rgba(0,0,0,0.7));
-      transform: translateZ(10px);
+      filter: drop-shadow(0 4px 3px rgba(0,0,0,0.7));
+      transform: translateZ(8px);
     }
 
     .white-piece {
@@ -109,8 +189,39 @@
       text-shadow: 0 0 2px #fff, 0 3px 5px rgba(255,255,255,0.4);
     }
 
+    .game-over-modal {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      display: none;
+    }
+    .modal-content {
+      background: #1e293b;
+      padding: 25px 35px;
+      border-radius: 20px;
+      border: 2px solid #fbbf24;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+    }
+    .modal-content h2 {
+      font-size: 1.6rem;
+      color: #fbbf24;
+      margin-bottom: 10px;
+    }
+    .modal-content p {
+      font-size: 1rem;
+      margin-bottom: 20px;
+      opacity: 0.9;
+    }
+
     .controls {
-      margin-top: 15px;
+      margin-top: 10px;
+      z-index: 2;
     }
     .btn-reset {
       background: #ef4444;
@@ -128,18 +239,47 @@
 </head>
 <body>
 
+  <!-- Arka Planda Kayan Yazı Efekti -->
+  <div class="bg-ticker">
+    <div class="ticker-line">ENES MAAŞINA ZAM İŞİNE SON • ENES MAAŞINA ZAM İŞİNE SON • </div>
+    <div class="ticker-line">ENES MAAŞINA ZAM İŞİNE SON • ENES MAAŞINA ZAM İŞİNE SON • </div>
+    <div class="ticker-line">ENES MAAŞINA ZAM İŞİNE SON • ENES MAAŞINA ZAM İŞİNE SON • </div>
+    <div class="ticker-line">ENES MAAŞINA ZAM İŞİNE SON • ENES MAAŞINA ZAM İŞİNE SON • </div>
+  </div>
+
   <header>
-    <h1>CHESS 3D | 2 Kişilik</h1>
+    <h1>CHESS 3D PRO</h1>
   </header>
 
-  <div class="status" id="game-status">Sıra: <span style="color:#fff; font-weight:bold;">Beyaz Oyuncu</span></div>
+  <div class="game-info">
+    <div id="white-timer" class="timer-box active">Beyaz: 30s</div>
+    <div id="black-timer" class="timer-box">Siyah: 30s</div>
+  </div>
 
-  <div class="board-container">
-    <div class="chess-board" id="board"></div>
+  <div class="game-wrapper">
+    <div class="captured-panel" id="captured-black">
+      <div class="captured-title">Alınan</div>
+    </div>
+
+    <div class="board-container">
+      <div class="chess-board" id="board"></div>
+    </div>
+
+    <div class="captured-panel" id="captured-white">
+      <div class="captured-title">Alınan</div>
+    </div>
   </div>
 
   <div class="controls">
     <button class="btn-reset" onclick="resetGame()">Oyunu Sıfırla</button>
+  </div>
+
+  <div class="game-over-modal" id="gameOverModal">
+    <div class="modal-content">
+      <h2 id="winner-text">OYUN BİTTİ</h2>
+      <p id="winner-reason">Şah mat oldu!</p>
+      <button class="btn-reset" onclick="resetGame()">Yeniden Başla</button>
+    </div>
   </div>
 
   <script>
@@ -159,9 +299,52 @@
       ['wR','wN','wB','wQ','wK','wB','wN','wR']
     ];
 
-    let turn = 'w'; // 'w' veya 'b'
+    let turn = 'w'; 
     let selectedSquare = null;
     let possibleMoves = [];
+    let capturedByWhite = [];
+    let capturedByBlack = [];
+
+    let whiteTime = 30;
+    let blackTime = 30;
+    let timerInterval = null;
+    let isGameOver = false;
+
+    function startTimer() {
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        if (isGameOver) return;
+
+        if (turn === 'w') {
+          whiteTime--;
+          if (whiteTime <= 0) {
+            endGame("Siyah Oyuncu Kazandı!", "Beyaz oyuncunun süresi bitti.");
+          }
+        } else {
+          blackTime--;
+          if (blackTime <= 0) {
+            endGame("Beyaz Oyuncu Kazandı!", "Siyah oyuncunun süresi bitti.");
+          }
+        }
+        updateTimerDisplay();
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      const wBox = document.getElementById('white-timer');
+      const bBox = document.getElementById('black-timer');
+      
+      wBox.innerText = `Beyaz: ${whiteTime}s`;
+      bBox.innerText = `Siyah: ${blackTime}s`;
+
+      if (turn === 'w') {
+        wBox.classList.add('active');
+        bBox.classList.remove('active');
+      } else {
+        bBox.classList.add('active');
+        wBox.classList.remove('active');
+      }
+    }
 
     function renderBoard() {
       const boardEl = document.getElementById('board');
@@ -192,27 +375,71 @@
           boardEl.appendChild(square);
         }
       }
+      renderCapturedPieces();
+    }
+
+    function renderCapturedPieces() {
+      const whitePanel = document.getElementById('captured-white');
+      const blackPanel = document.getElementById('captured-black');
+      
+      whitePanel.innerHTML = '<div class="captured-title">Alınan</div>';
+      capturedByWhite.forEach(p => {
+        const span = document.createElement('span');
+        span.className = 'black-piece';
+        span.style.fontSize = '1.1rem';
+        span.innerText = pieces[p];
+        whitePanel.appendChild(span);
+      });
+
+      blackPanel.innerHTML = '<div class="captured-title">Alınan</div>';
+      capturedByBlack.forEach(p => {
+        const span = document.createElement('span');
+        span.className = 'white-piece';
+        span.style.fontSize = '1.1rem';
+        span.innerText = pieces[p];
+        blackPanel.appendChild(span);
+      });
     }
 
     function handleSquareClick(r, c) {
+      if (isGameOver) return;
       const piece = board[r][c];
 
-      // 1. Daha önceden taş seçilmişse ve yeşil ışıklı bir yere tıklandıysa hamle yap
       if (selectedSquare) {
         const targetMove = possibleMoves.find(m => m.r === r && m.c === c);
         if (targetMove) {
+          const targetPiece = board[r][c];
+
           board[r][c] = board[selectedSquare.r][selectedSquare.c];
           board[selectedSquare.r][selectedSquare.c] = '';
+
+          if (targetPiece !== '') {
+            if (targetPiece.startsWith('w')) {
+              capturedByBlack.push(targetPiece);
+            } else {
+              capturedByWhite.push(targetPiece);
+            }
+
+            if (targetPiece[1] === 'K') {
+              renderBoard();
+              let winner = targetPiece.startsWith('w') ? "Siyah Oyuncu" : "Beyaz Oyuncu";
+              endGame(`${winner} Kazandı!`, "Şah mat edildi!");
+              return;
+            }
+          }
+
           turn = turn === 'w' ? 'b' : 'w';
+          if (turn === 'w') whiteTime = 30;
+          else blackTime = 30;
+
           selectedSquare = null;
           possibleMoves = [];
-          updateStatus();
+          updateTimerDisplay();
           renderBoard();
           return;
         }
       }
 
-      // 2. Kendi sırası olan oyuncunun taşına tıklandıysa seç ve gidebileceği yerleri hesapla
       if (piece && piece.startsWith(turn)) {
         selectedSquare = { r, c };
         possibleMoves = calculateValidMoves(r, c, piece);
@@ -224,7 +451,6 @@
       }
     }
 
-    // Taşların gerçek kurallarına göre hamle hesaplama
     function calculateValidMoves(r, c, piece) {
       let moves = [];
       let type = piece[1];
@@ -235,29 +461,25 @@
           const target = board[row][col];
           if (target === '') {
             moves.push({ r: row, c: col });
-            return true; // Boşsa devam edebilir
+            return true;
           } else if (!target.startsWith(color)) {
-            moves.push({ r: row, c: col }); // Rakip taş yenebilir
-            return false; // Rakip taşın arkasına geçemez
+            moves.push({ r: row, c: col });
+            return false;
           }
-          return false; // Kendi taşının üzerinden atlayamaz
+          return false;
         }
         return false;
       };
 
-      if (type === 'P') { // Piyon
+      if (type === 'P') {
         let dir = (color === 'w') ? -1 : 1;
         let startRow = (color === 'w') ? 6 : 1;
-
-        // Düz 1 adım
         if (r + dir >= 0 && r + dir < 8 && board[r + dir][c] === '') {
           moves.push({ r: r + dir, c: c });
-          // Başlangıçtan 2 adım
           if (r === startRow && board[r + dir * 2][c] === '') {
             moves.push({ r: r + dir * 2, c: c });
           }
         }
-        // Çapraz yeme
         [-1, 1].forEach(dc => {
           let tr = r + dir, tc = c + dc;
           if (tr >= 0 && tr < 8 && tc >= 0 && tc < 8) {
@@ -268,7 +490,7 @@
           }
         });
       } 
-      else if (type === 'N') { // At
+      else if (type === 'N') {
         let knightMoves = [
           [-2,-1], [-2,1], [-1,-2], [-1,2],
           [1,-2], [1,2], [2,-1], [2,1]
@@ -283,7 +505,7 @@
           }
         });
       }
-      else if (type === 'B' || type === 'R' || type === 'Q') { // Fil, Kale, Vezir
+      else if (type === 'B' || type === 'R' || type === 'Q') {
         let dirs = [];
         if (type === 'R' || type === 'Q') dirs.push([-1,0], [1,0], [0,-1], [0,1]);
         if (type === 'B' || type === 'Q') dirs.push([-1,-1], [-1,1], [1,-1], [1,1]);
@@ -298,7 +520,7 @@
           }
         });
       }
-      else if (type === 'K') { // Şah
+      else if (type === 'K') {
         let kingMoves = [
           [-1,-1], [-1,0], [-1,1],
           [0,-1], [0,1],
@@ -314,17 +536,15 @@
           }
         });
       }
-
       return moves;
     }
 
-    function updateStatus() {
-      const statusEl = document.getElementById('game-status');
-      if (turn === 'w') {
-        statusEl.innerHTML = 'Sıra: <span style="color:#fff; font-weight:bold;">Beyaz Oyuncu</span>';
-      } else {
-        statusEl.innerHTML = 'Sıra: <span style="color:#fbbf24; font-weight:bold;">Siyah Oyuncu</span>';
-      }
+    function endGame(title, reason) {
+      isGameOver = true;
+      clearInterval(timerInterval);
+      document.getElementById('winner-text').innerText = title;
+      document.getElementById('winner-reason').innerText = reason;
+      document.getElementById('gameOverModal').style.display = 'flex';
     }
 
     function resetGame() {
@@ -341,11 +561,20 @@
       turn = 'w';
       selectedSquare = null;
       possibleMoves = [];
-      updateStatus();
+      capturedByWhite = [];
+      capturedByBlack = [];
+      whiteTime = 30;
+      blackTime = 30;
+      isGameOver = false;
+      document.getElementById('gameOverModal').style.display = 'none';
+      updateTimerDisplay();
       renderBoard();
+      startTimer();
     }
 
-    window.onload = renderBoard;
+    window.onload = () => {
+      resetGame();
+    };
   </script>
 </body>
 </html>
