@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Muammer vs Enes | 5 Haneli Online Satranç</title>
+  <title>Muammer vs Enes | 3D Animasyonlu Satranç</title>
   <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
   <style>
     * {
@@ -57,7 +57,7 @@
       font-weight: 900;
     }
 
-    /* 5 Haneli Oda Paneli */
+    /* Oda Paneli */
     .lobby-panel {
       background: rgba(255, 255, 255, 0.08);
       backdrop-filter: blur(12px);
@@ -121,12 +121,12 @@
       display: flex; align-items: center; gap: 6px; z-index: 2;
     }
     .captured-box {
-      width: 35px; height: 320px;
+      width: 35px; height: 340px;
       background: rgba(0, 0, 0, 0.6);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 10px;
       display: flex; flex-direction: column; align-items: center;
-      padding: 4px; gap: 3px; font-size: 1rem; overflow-y: auto;
+      padding: 4px; gap: 3px; font-size: 1.2rem; overflow-y: auto;
     }
     .captured-label {
       font-size: 0.55rem; opacity: 0.5; border-bottom: 1px solid rgba(255,255,255,0.2); width: 100%; text-align: center;
@@ -143,25 +143,42 @@
       display: grid;
       grid-template-columns: repeat(8, 1fr);
       grid-template-rows: repeat(8, 1fr);
-      width: 320px; height: 320px;
+      width: 340px; height: 340px;
       border: 2px solid #111;
+      position: relative;
     }
 
     .cell {
       display: flex; align-items: center; justify-content: center;
-      font-size: 2rem; cursor: pointer; user-select: none; position: relative;
+      cursor: pointer; user-select: none; position: relative;
     }
-    .cell.light { background: #e0e1dd; color: #1b263b; }
-    .cell.dark { background: #415a77; color: #f8f9fa; }
-    .cell.selected { background: #ffd166 !important; }
+    .cell.light { background: #f0d9b5; }
+    .cell.dark { background: #b58863; }
+    .cell.selected { background: #facc15 !important; }
     .cell.movable::after {
       content: '';
       position: absolute;
       width: 14px; height: 14px;
-      background: #06d6a0;
+      background: #22c55e;
       border-radius: 50%;
+      box-shadow: 0 0 6px #22c55e;
     }
-    .chess-piece { display: inline-block; filter: drop-shadow(0 3px 2px rgba(0,0,0,0.8)); }
+
+    /* Zıplayarak ve Süzülerek Gitme Animasyonlu Taş Tasarımı */
+    .chess-piece {
+      width: 82%;
+      height: 82%;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      filter: drop-shadow(0 4px 3px rgba(0,0,0,0.6));
+      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 5;
+    }
+    .chess-piece.moving {
+      transform: scale(1.2) translateY(-10px);
+      filter: drop-shadow(0 10px 8px rgba(0,0,0,0.8));
+    }
 
     /* Modal */
     .modal-overlay {
@@ -194,7 +211,6 @@
     <h1>ONLINE CHESS ARENA</h1>
   </header>
 
-  <!-- 5 Haneli Oda Paneli -->
   <div class="lobby-panel" id="lobbyPanel">
     <h3 style="font-size: 1rem; color: #00f5d4; margin-bottom: 5px;">5 Haneli Oda Kodu</h3>
     <div id="roomCodeDisplay" style="font-size: 1.5rem; font-weight: bold; color: #ffd166; letter-spacing: 3px; margin: 5px 0;">Oluşturuluyor...</div>
@@ -238,13 +254,23 @@
   </div>
 
   <script>
-    const glyphs = {
-      wR: '♖', wN: '♘', wB: '♗', wQ: '♕', wK: '♔', wP: '♙',
-      bR: '♜', bN: '♞', bB: '♝', bQ: '♛', bK: '♚', bP: '♟'
+    const pieceSvgs = {
+      wK: "https://upload.wikimedia.org/wikipedia/commons/4/42/Chess_klt45.svg",
+      wQ: "https://upload.wikimedia.org/wikipedia/commons/1/15/Chess_qlt45.svg",
+      wR: "https://upload.wikimedia.org/wikipedia/commons/7/72/Chess_rlt45.svg",
+      wB: "https://upload.wikimedia.org/wikipedia/commons/b/b1/Chess_blt45.svg",
+      wN: "https://upload.wikimedia.org/wikipedia/commons/7/70/Chess_nlt45.svg",
+      wP: "https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg",
+      bk: "https://upload.wikimedia.org/wikipedia/commons/f/f0/Chess_kdt45.svg",
+      bQ: "https://upload.wikimedia.org/wikipedia/commons/4/47/Chess_qdt45.svg",
+      bR: "https://upload.wikimedia.org/wikipedia/commons/f/ff/Chess_rdt45.svg",
+      bB: "https://upload.wikimedia.org/wikipedia/commons/9/98/Chess_bdt45.svg",
+      bN: "https://upload.wikimedia.org/wikipedia/commons/e/ef/Chess_ndt45.svg",
+      bP: "https://upload.wikimedia.org/wikipedia/commons/c/c7/Chess_pdt45.svg"
     };
 
     let boardState = [
-      ['bR','bN','bB','bQ','bK','bB','bN','bR'],
+      ['bR','bN','bB','bQ','bk','bB','bN','bR'],
       ['bP','bP','bP','bP','bP','bP','bP','bP'],
       ['','','','','','','',''],
       ['','','','','','','',''],
@@ -262,31 +288,24 @@
 
     let peer = null;
     let conn = null;
-    let myRole = null; // 'w' veya 'b'
+    let myRole = null;
     let my5DigitCode = "";
 
-    // 5 haneli rastgele kod üretici
     function generate5DigitCode() {
       return Math.floor(10000 + Math.random() * 90000).toString();
     }
 
     function initPeerSystem() {
       my5DigitCode = generate5DigitCode();
-      // Prefix ekleyerek benzersiz bir peer id oluşturuyoruz (örn: muammer-chess-48291)
       peer = new Peer("muammer-chess-" + my5DigitCode);
 
       peer.on('open', () => {
         document.getElementById('roomCodeDisplay').innerText = my5DigitCode;
-        myRole = 'w'; // Odayı açan Beyaz (Muammer)
+        myRole = 'w';
       });
 
       peer.on('error', (err) => {
-        // Eğer nadiren aynı kod üretilirse yeniden dene
-        if (err.type === 'unavailable-id') {
-          initPeerSystem();
-        } else {
-          console.error(err);
-        }
+        if (err.type === 'unavailable-id') initPeerSystem();
       });
 
       peer.on('connection', (connection) => {
@@ -306,7 +325,7 @@
 
       const targetId = "muammer-chess-" + code;
       conn = peer.connect(targetId);
-      myRole = 'b'; // Odaya katılan Siyah (Enes)
+      myRole = 'b';
 
       conn.on('open', () => {
         setupConnEvents();
@@ -326,9 +345,7 @@
           currentTurn = data.turn;
           lostByWhite = data.lostW;
           lostByBlack = data.lostB;
-          if (data.gameOver) {
-            triggerEnd(data.winnerTitle, data.winnerDesc);
-          }
+          if (data.gameOver) triggerEnd(data.winnerTitle, data.winnerDesc);
           drawBoard();
           updateTurnUI();
         }
@@ -355,6 +372,8 @@
         for (let c = 0; c < 8; c++) {
           const cell = document.createElement('div');
           cell.className = `cell ${(r + c) % 2 === 0 ? 'light' : 'dark'}`;
+          cell.dataset.row = r;
+          cell.dataset.col = c;
 
           if (activeSelection && activeSelection.r === r && activeSelection.c === c) {
             cell.classList.add('selected');
@@ -365,10 +384,10 @@
 
           const code = boardState[r][c];
           if (code) {
-            const span = document.createElement('span');
-            span.className = 'chess-piece';
-            span.innerText = glyphs[code];
-            cell.appendChild(span);
+            const pieceDiv = document.createElement('div');
+            pieceDiv.className = 'chess-piece';
+            pieceDiv.style.backgroundImage = `url('${pieceSvgs[code]}')`;
+            cell.appendChild(pieceDiv);
           }
 
           cell.addEventListener('click', () => onCellTouch(r, c));
@@ -384,12 +403,20 @@
 
       boxW.innerHTML = '<div class="captured-label">Alınan</div>';
       lostByBlack.forEach(p => {
-        let s = document.createElement('span'); s.style.fontSize = '1rem'; s.innerText = glyphs[p]; boxW.appendChild(s);
+        let d = document.createElement('div');
+        d.style.width = '24px'; d.style.height = '24px';
+        d.style.backgroundImage = `url('${pieceSvgs[p]}')`;
+        d.style.backgroundSize = 'contain'; d.style.backgroundRepeat = 'no-repeat';
+        boxW.appendChild(d);
       });
 
       boxB.innerHTML = '<div class="captured-label">Alınan</div>';
       lostByWhite.forEach(p => {
-        let s = document.createElement('span'); s.style.fontSize = '1rem'; s.innerText = glyphs[p]; boxB.appendChild(s);
+        let d = document.createElement('div');
+        d.style.width = '24px'; d.style.height = '24px';
+        d.style.backgroundImage = `url('${pieceSvgs[p]}')`;
+        d.style.backgroundSize = 'contain'; d.style.backgroundRepeat = 'no-repeat';
+        boxB.appendChild(d);
       });
     }
 
@@ -404,48 +431,59 @@
       if (activeSelection) {
         const target = validMoves.find(m => m.r === r && m.c === c);
         if (target) {
-          const victim = boardState[r][c];
+          // Zıplama / Hareket animasyon efekti
+          const startCell = document.querySelector(`[data-row='${activeSelection.r}'][data-col='${activeSelection.c}']`);
+          const pieceEl = startCell ? startCell.querySelector('.chess-piece') : null;
+          
+          if (pieceEl) {
+            pieceEl.classList.add('moving');
+          }
 
-          boardState[r][c] = boardState[activeSelection.r][activeSelection.c];
-          boardState[activeSelection.r][activeSelection.c] = '';
+          setTimeout(() => {
+            const victim = boardState[r][c];
 
-          let isOver = false;
-          let winTitle = "";
-          let winDesc = "";
+            boardState[r][c] = boardState[activeSelection.r][activeSelection.c];
+            boardState[activeSelection.r][activeSelection.c] = '';
 
-          if (victim !== '') {
-            if (victim.startsWith('w')) lostByWhite.push(victim);
-            else lostByBlack.push(victim);
+            let isOver = false;
+            let winTitle = "";
+            let winDesc = "";
 
-            if (victim[1] === 'K') {
-              isOver = true;
-              let victor = victim.startsWith('w') ? "Enes" : "Muammer";
-              winTitle = `${victor} Kazandı!`;
-              winDesc = "Şah mat edildi!";
+            if (victim !== '') {
+              if (victim.startsWith('w')) lostByWhite.push(victim);
+              else lostByBlack.push(victim);
+
+              if (victim === 'wK' || victim === 'bk') {
+                isOver = true;
+                let victor = victim.startsWith('w') ? "Enes" : "Muammer";
+                winTitle = `${victor} Kazandı!`;
+                winDesc = "Şah mat edildi!";
+              }
             }
-          }
 
-          currentTurn = currentTurn === 'w' ? 'b' : 'w';
-          activeSelection = null;
-          validMoves = [];
+            currentTurn = currentTurn === 'w' ? 'b' : 'w';
+            activeSelection = null;
+            validMoves = [];
 
-          if (conn && conn.open) {
-            conn.send({
-              type: 'move',
-              board: boardState,
-              turn: currentTurn,
-              lostW: lostByWhite,
-              lostB: lostByBlack,
-              gameOver: isOver,
-              winnerTitle: winTitle,
-              winnerDesc: winDesc
-            });
-          }
+            if (conn && conn.open) {
+              conn.send({
+                type: 'move',
+                board: boardState,
+                turn: currentTurn,
+                lostW: lostByWhite,
+                lostB: lostByBlack,
+                gameOver: isOver,
+                winnerTitle: winTitle,
+                winnerDesc: winDesc
+              });
+            }
 
-          if (isOver) triggerEnd(winTitle, winDesc);
+            if (isOver) triggerEnd(winTitle, winDesc);
 
-          drawBoard();
-          updateTurnUI();
+            drawBoard();
+            updateTurnUI();
+          }, 250); // Animasyon süresi kadar bekle
+
           return;
         }
       }
