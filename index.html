@@ -9,10 +9,8 @@
         body { background-color: #0f172a; color: #f8fafc; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
         #app { display: flex; flex-direction: column; height: 100%; width: 100%; position: relative; }
         
-        /* 3D Tuval - Arka Planda Kalacak */
         #webgl-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
 
-        /* Arayüz Panelleri - Kesinlikle Tıklanabilir Olması İçin En Üstte */
         .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(15, 23, 42, 0.92); z-index: 100; padding: 20px; transition: opacity 0.3s ease; }
         .screen.hidden { opacity: 0; pointer-events: none; }
         
@@ -27,7 +25,6 @@
         button:hover { background: #f59e0b; }
         button.secondary { background: transparent; border: 1px solid #475569; color: #cbd5e1; }
 
-        /* Oyun Üst Bilgi */
         #game-header { position: absolute; top: 0; left: 0; width: 100%; padding: 15px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(to bottom, rgba(15,23,42,0.9), transparent); z-index: 50; pointer-events: none; }
         .badge { background: #1e293b; border: 1px solid #334155; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; pointer-events: auto; display: flex; align-items: center; gap: 6px; }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; }
@@ -36,13 +33,12 @@
         #toast.show { opacity: 1; }
     </style>
 
-    <!-- Kütüphaneler -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue, update, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBjZl1zNUO_LHInjq_irPol6BM1heYJpuoQ",
@@ -63,7 +59,6 @@
         window.set = set;
         window.onValue = onValue;
         window.update = update;
-        window.get = get;
     </script>
 </head>
 <body>
@@ -71,12 +66,11 @@
         <div id="game-header">
             <div class="badge">
                 <span class="status-dot"></span>
-                <span id="connection-status">Online (Aktif)</span>
+                <span id="connection-status">Online (Bağlı)</span>
             </div>
             <div class="badge" id="room-badge" style="display:none;">Oda: <span id="current-room-id" style="color:#fbbf24; margin-left:4px;"></span></div>
         </div>
 
-        <!-- Menü Ekranı -->
         <div id="menu-screen" class="screen">
             <div class="card">
                 <h1>3D Satranç Online</h1>
@@ -88,11 +82,10 @@
             </div>
         </div>
 
-        <!-- Bekleme Ekranı -->
         <div id="waiting-screen" class="screen hidden">
             <div class="card">
-                <h1>Rakip Bekleniyor...</h1>
-                <p>Oda kuruldu! Bu bağlantıyı arkadaşına gönder:</p>
+                <h1>Oda Kuruldu!</h1>
+                <p>Bu bağlantıyı kopyalayıp arkadaşına gönder:</p>
                 <input type="text" id="share-link" readonly style="font-size: 12px; text-align: center;">
                 <button id="copy-link-btn">Bağlantıyı Kopyala</button>
             </div>
@@ -106,16 +99,12 @@
         let scene, camera, renderer, chess, boardGroup = {};
         let selectedSquare = null;
         let roomId = null, playerColor = 'white';
-        let gameRef = null;
-
-        const synth = new Tone.Synth().toDestination();
-        function playMoveSound() { synth.triggerAttackRelease("C4", "8n"); }
 
         function showToast(msg) {
             const t = document.getElementById('toast');
             t.innerText = msg;
             t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 2000);
+            setTimeout(() => t.classList.remove('show'), 2500);
         }
 
         function init3D() {
@@ -212,9 +201,7 @@
         const mouse = new THREE.Vector2();
 
         function onCanvasClick(event) {
-            // Menü açıkken tahtaya tıklanmasın
-            if (!roomId || !document.getElementById('menu-screen').classList.contains('hidden') === false) return;
-            
+            if (!roomId) return;
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
@@ -241,7 +228,6 @@
             } else {
                 const move = chess.move({ from: selectedSquare, to: sq, promotion: 'q' });
                 if (move) {
-                    playMoveSound();
                     selectedSquare = null;
                     updatePieces3D(chess.fen());
                     window.set(window.ref(window.db, 'rooms/' + roomId), { fen: chess.fen() });
@@ -258,30 +244,35 @@
                 if (data && data.fen && data.fen !== chess.fen()) {
                     chess.load(data.fen);
                     updatePieces3D(data.fen);
-                    playMoveSound();
                 }
             });
         }
 
-        // Buton Dinleyicileri
         document.getElementById('create-room-btn').addEventListener('click', () => {
             roomId = Math.random().toString(36).substring(2, 8);
             playerColor = 'white';
             chess = new Chess();
             
-            window.set(window.ref(window.db, 'rooms/' + roomId), { fen: chess.fen() });
-
-            document.getElementById('menu-screen').classList.add('hidden');
-            document.getElementById('waiting-screen').classList.remove('hidden');
-            
-            const link = window.location.origin + window.location.pathname + "?room=" + roomId;
-            document.getElementById('share-link').value = link;
-            listenRoom(roomId);
+            // Firebase'e odayı kaydet
+            window.set(window.ref(window.db, 'rooms/' + roomId), { fen: chess.fen() })
+                .then(() => {
+                    document.getElementById('menu-screen').classList.add('hidden');
+                    document.getElementById('waiting-screen').classList.remove('hidden');
+                    
+                    const link = window.location.origin + window.location.pathname + "?room=" + roomId;
+                    document.getElementById('share-link').value = link;
+                    listenRoom(roomId);
+                    showToast("Oda başarıyla oluşturuldu!");
+                })
+                .catch((error) => {
+                    showToast("Hata: Oda kurulamadı!");
+                    console.error(error);
+                });
         });
 
         document.getElementById('join-room-btn').addEventListener('click', () => {
             const code = document.getElementById('room-input').value.trim();
-            if (!code) return showToast("Oda kodu girin!");
+            if (!code) return showToast("Lütfen oda kodu girin!");
             
             roomId = code;
             playerColor = 'black';
@@ -295,11 +286,13 @@
 
             listenRoom(roomId);
             updatePieces3D(chess.fen());
+            showToast("Odaya katıldın!");
         });
 
         document.getElementById('copy-link-btn').addEventListener('click', () => {
             const input = document.getElementById('share-link');
             input.select();
+            input.setSelectionRange(0, 99999);
             navigator.clipboard.writeText(input.value);
             showToast("Bağlantı kopyalandı!");
         });
