@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Muammer vs Enes | 3D Animasyonlu Satranç</title>
+  <title>Muammer vs Enes | 3D Pro Satranç (Rok & Şah Uyarısı)</title>
   <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
   <style>
     * {
@@ -116,6 +116,26 @@
     }
     .player-name { font-size: 0.85rem; font-weight: bold; color: #ffd166; }
 
+    /* Şah Çekildi Uyarı Banner'ı */
+    .check-alert {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid #ef4444;
+      color: #fca5a5;
+      padding: 4px 12px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      margin-bottom: 6px;
+      display: none;
+      animation: pulseAlert 1s infinite;
+      z-index: 2;
+    }
+    @keyframes pulseAlert {
+      0% { opacity: 0.6; }
+      50% { opacity: 1; }
+      100% { opacity: 0.6; }
+    }
+
     /* Tahta Alanı */
     .arena {
       display: flex; align-items: center; gap: 6px; z-index: 2;
@@ -155,6 +175,18 @@
     .cell.light { background: #f0d9b5; }
     .cell.dark { background: #b58863; }
     .cell.selected { background: #facc15 !important; }
+    
+    /* Şah Tehdidi Kırmızı Yanıp Sönen Çerçeve */
+    .cell.in-check {
+      background: #ef4444 !important;
+      box-shadow: inset 0 0 15px #991b1b;
+      animation: checkPulse 0.8s infinite alternate;
+    }
+    @keyframes checkPulse {
+      0% { background: #dc2626; }
+      100% { background: #ef4444; }
+    }
+
     .cell.movable::after {
       content: '';
       position: absolute;
@@ -164,7 +196,6 @@
       box-shadow: 0 0 6px #22c55e;
     }
 
-    /* Zıplayarak ve Süzülerek Gitme Animasyonlu Taş Tasarımı */
     .chess-piece {
       width: 82%;
       height: 82%;
@@ -231,6 +262,9 @@
     </div>
   </div>
 
+  <!-- Şah Çekildi Uyarı Banner'ı -->
+  <div class="check-alert" id="checkAlert">⚠️ DİKKAT: ŞAH ÇEKİLDİ!</div>
+
   <div class="arena">
     <div class="captured-box" id="captured-black">
       <div class="captured-label">Alınan</div>
@@ -285,6 +319,9 @@
     let validMoves = [];
     let lostByWhite = [];
     let lostByBlack = [];
+
+    // Rok için taşların oynayıp oynamadığını takip eden bayraklar
+    let hasMoved = { wK: false, wR0: false, wR7: false, bk: false, bR0: false, bR7: false };
 
     let peer = null;
     let conn = null;
@@ -345,9 +382,11 @@
           currentTurn = data.turn;
           lostByWhite = data.lostW;
           lostByBlack = data.lostB;
+          hasMoved = data.hasMoved;
           if (data.gameOver) triggerEnd(data.winnerTitle, data.winnerDesc);
           drawBoard();
           updateTurnUI();
+          checkKingThreat();
         }
       });
     }
@@ -364,9 +403,54 @@
       }
     }
 
+    // Belirli bir rengin Şah'ına şah çekilip çekilmediğini kontrol et
+    function isKingInCheck(color) {
+      let kingCode = (color === 'w') ? 'wK' : 'bk';
+      let kingPos = null;
+
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (boardState[r][c] === kingCode) {
+            kingPos = { r, c };
+            break;
+          }
+        }
+        if (kingPos) break;
+      }
+      if (!kingPos) return null;
+
+      // Rakip taşların bu kareye ulaşabiliyor mu kontrol et
+      let opponent = (color === 'w') ? 'b' : 'w';
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          let p = boardState[r][c];
+          if (p && p.startsWith(opponent)) {
+            let moves = computeMoves(r, c, p, true);
+            if (moves.some(m => m.r === kingPos.r && m.c === kingPos.c)) {
+              return kingPos; // Şah tehdit altında!
+            }
+          }
+        }
+      }
+      return null;
+    }
+
+    function checkKingThreat() {
+      let threatPos = isKingInCheck(currentTurn);
+      const alertBox = document.getElementById('checkAlert');
+      if (threatPos) {
+        alertBox.style.display = 'block';
+      } else {
+        alertBox.style.display = 'none';
+      }
+      return threatPos;
+    }
+
     function drawBoard() {
       const grid = document.getElementById('chessGrid');
       grid.innerHTML = '';
+
+      let threatPos = isKingInCheck(currentTurn);
 
       for (let r = 0; r < 8; r++) {
         for (let c = 0; c < 8; c++) {
@@ -374,6 +458,10 @@
           cell.className = `cell ${(r + c) % 2 === 0 ? 'light' : 'dark'}`;
           cell.dataset.row = r;
           cell.dataset.col = c;
+
+          if (threatPos && threatPos.r === r && threatPos.c === c) {
+            cell.classList.add('in-check');
+          }
 
           if (activeSelection && activeSelection.r === r && activeSelection.c === c) {
             cell.classList.add('selected');
@@ -431,18 +519,43 @@
       if (activeSelection) {
         const target = validMoves.find(m => m.r === r && m.c === c);
         if (target) {
-          // Zıplama / Hareket animasyon efekti
           const startCell = document.querySelector(`[data-row='${activeSelection.r}'][data-col='${activeSelection.c}']`);
           const pieceEl = startCell ? startCell.querySelector('.chess-piece') : null;
           
-          if (pieceEl) {
-            pieceEl.classList.add('moving');
-          }
+          if (pieceEl) pieceEl.classList.add('moving');
 
           setTimeout(() => {
+            const movingPiece = boardState[activeSelection.r][activeSelection.c];
             const victim = boardState[r][c];
 
-            boardState[r][c] = boardState[activeSelection.r][activeSelection.c];
+            // ROK KONTROLÜ VE UYGULAMASI
+            if (movingPiece[1] === 'K' && Math.abs(c - activeSelection.c) === 2) {
+              if (c === 6) { // Kısa Rok
+                let rookCol = 7;
+                let newRookCol = 5;
+                boardState[r][newRookCol] = boardState[r][rookCol];
+                boardState[r][rookCol] = '';
+              } else if (c === 2) { // Uzun Rok
+                let rookCol = 0;
+                let newRookCol = 3;
+                boardState[r][newRookCol] = boardState[r][rookCol];
+                boardState[r][rookCol] = '';
+              }
+            }
+
+            // Taş hareket takipleri (Rok için)
+            if (movingPiece === 'wK') hasMoved.wK = true;
+            if (movingPiece === 'bk') hasMoved.bk = true;
+            if (movingPiece === 'wR') {
+              if (activeSelection.r === 7 && activeSelection.c === 0) hasMoved.wR0 = true;
+              if (activeSelection.r === 7 && activeSelection.c === 7) hasMoved.wR7 = true;
+            }
+            if (movingPiece === 'bR') {
+              if (activeSelection.r === 0 && activeSelection.c === 0) hasMoved.bR0 = true;
+              if (activeSelection.r === 0 && activeSelection.c === 7) hasMoved.bR7 = true;
+            }
+
+            boardState[r][c] = movingPiece;
             boardState[activeSelection.r][activeSelection.c] = '';
 
             let isOver = false;
@@ -457,7 +570,7 @@
                 isOver = true;
                 let victor = victim.startsWith('w') ? "Enes" : "Muammer";
                 winTitle = `${victor} Kazandı!`;
-                winDesc = "Şah mat edildi!";
+                winDesc = "Şah ele geçirildi!";
               }
             }
 
@@ -472,6 +585,7 @@
                 turn: currentTurn,
                 lostW: lostByWhite,
                 lostB: lostByBlack,
+                hasMoved: hasMoved,
                 gameOver: isOver,
                 winnerTitle: winTitle,
                 winnerDesc: winDesc
@@ -482,7 +596,8 @@
 
             drawBoard();
             updateTurnUI();
-          }, 250); // Animasyon süresi kadar bekle
+            checkKingThreat();
+          }, 250);
 
           return;
         }
@@ -490,7 +605,7 @@
 
       if (piece && piece.startsWith(currentTurn)) {
         activeSelection = { r, c };
-        validMoves = computeMoves(r, c, piece);
+        validMoves = computeMoves(r, c, piece, false);
         drawBoard();
       } else {
         activeSelection = null;
@@ -499,7 +614,7 @@
       }
     }
 
-    function computeMoves(r, c, piece) {
+    function computeMoves(r, c, piece, isThreatCheck) {
       let list = [];
       let type = piece[1];
       let color = piece[0];
@@ -507,70 +622,4 @@
         if (row >= 0 && row < 8 && col >= 0 && col < 8) {
           let dest = boardState[row][col];
           if (dest === '') { list.push({ r: row, c: col }); return true; }
-          else if (!dest.startsWith(color)) { list.push({ r: row, c: col }); return false; }
-          return false;
-        }
-        return false;
-      };
-
-      if (type === 'P') {
-        let step = (color === 'w') ? -1 : 1;
-        let base = (color === 'w') ? 6 : 1;
-        if (r + step >= 0 && r + step < 8 && boardState[r + step][c] === '') {
-          list.push({ r: r + step, c: c });
-          if (r === base && boardState[r + step * 2][c] === '') list.push({ r: r + step * 2, c: c });
-        }
-        [-1, 1].forEach(dc => {
-          let tr = r + step, tc = c + dc;
-          if (tr >= 0 && tr < 8 && tc >= 0 && tc < 8) {
-            let target = boardState[tr][tc];
-            if (target !== '' && !target.startsWith(color)) list.push({ r: tr, c: tc });
-          }
-        });
-      } else if (type === 'N') {
-        let jumps = [[-2,-1], [-2,1], [-1,-2], [-1,2], [1,-2], [1,2], [2,-1], [2,1]];
-        jumps.forEach(j => {
-          let tr = r + j[0], tc = c + j[1];
-          if (tr >= 0 && tr < 8 && tc >= 0 && tc < 8) {
-            let target = boardState[tr][tc];
-            if (target === '' || !target.startsWith(color)) list.push({ r: tr, c: tc });
-          }
-        });
-      } else if (type === 'B' || type === 'R' || type === 'Q') {
-        let dirs = [];
-        if (type === 'R' || type === 'Q') dirs.push([-1,0], [1,0], [0,-1], [0,1]);
-        if (type === 'B' || type === 'Q') dirs.push([-1,-1], [-1,1], [1,-1], [1,1]);
-        dirs.forEach(d => {
-          let s = 1;
-          while (true) {
-            let tr = r + d[0] * s, tc = c + d[1] * s;
-            if (!checkDir(tr, tc)) break;
-            s++;
-          }
-        });
-      } else if (type === 'K') {
-        let steps = [[-1,-1], [-1,0], [-1,1], [0,-1], [0,1], [1,-1], [1,0], [1,1]];
-        steps.forEach(s => {
-          let tr = r + s[0], tc = c + s[1];
-          if (tr >= 0 && tr < 8 && tc >= 0 && tc < 8) {
-            let target = boardState[tr][tc];
-            if (target === '' || !target.startsWith(color)) list.push({ r: tr, c: tc });
-          }
-        });
-      }
-      return list;
-    }
-
-    function triggerEnd(title, desc) {
-      document.getElementById('modalTitle').innerText = title;
-      document.getElementById('modalDesc').innerText = desc;
-      document.getElementById('endModal').style.display = 'flex';
-    }
-
-    window.onload = () => {
-      initPeerSystem();
-      drawBoard();
-    };
-  </script>
-</body>
-</html>
+          else if (!dest.sta
