@@ -3,285 +3,102 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Muammer vs Enes | 3D Pro Satranç (Rok & Şah Uyarısı)</title>
+  <title>Muammer vs Enes | 3D Satranç</title>
   <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
     body {
-      background: #090d16;
-      color: #fff;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 10px;
-      overflow-x: hidden;
-      position: relative;
+      background: #090d16; color: #fff; min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 10px; overflow-x: hidden; position: relative;
     }
-
-    /* Arka Planda Kayan Yazı */
     .bg-ticker {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       overflow: hidden; z-index: -1; pointer-events: none;
-      display: flex; flex-direction: column; justify-content: space-around;
-      opacity: 0.1;
+      display: flex; flex-direction: column; justify-content: space-around; opacity: 0.1;
     }
     .ticker-line {
       white-space: nowrap; font-size: 2.2rem; font-weight: 900;
-      text-transform: uppercase; color: #00f5d4;
-      animation: tickerScroll 18s linear infinite;
-    }
-    .ticker-line:nth-child(even) {
-      animation-direction: reverse; animation-duration: 22s; color: #ff007f;
+      text-transform: uppercase; color: #00f5d4; animation: tickerScroll 18s linear infinite;
     }
     @keyframes tickerScroll {
       0% { transform: translateX(100%); }
       100% { transform: translateX(-100%); }
     }
-
-    header {
-      text-align: center; margin-bottom: 6px; z-index: 2;
-    }
-    header h1 {
-      font-size: 1.3rem;
-      background: linear-gradient(45deg, #00f5d4, #7000ff, #ff007f);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      font-weight: 900;
-    }
-
-    /* Oda Paneli */
+    header { text-align: center; margin-bottom: 6px; z-index: 2; }
+    header h1 { font-size: 1.3rem; color: #00f5d4; font-weight: 900; }
     .lobby-panel {
-      background: rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(12px);
-      padding: 15px;
-      border-radius: 15px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      text-align: center;
-      margin-bottom: 10px;
-      width: 100%;
-      max-width: 350px;
-      z-index: 10;
+      background: rgba(255,255,255,0.08); padding: 15px; border-radius: 15px;
+      border: 1px solid rgba(255,255,255,0.2); text-align: center; margin-bottom: 10px; width: 100%; max-width: 350px; z-index: 10;
     }
     .lobby-panel input {
-      padding: 8px 12px;
-      border-radius: 8px;
-      border: none;
-      width: 60%;
-      margin-top: 5px;
-      font-size: 1.1rem;
-      letter-spacing: 2px;
-      text-align: center;
-      font-weight: bold;
+      padding: 8px; border-radius: 8px; border: none; width: 60%; margin-top: 5px;
+      font-size: 1.1rem; letter-spacing: 2px; text-align: center; font-weight: bold;
     }
     .lobby-panel button {
-      padding: 8px 14px;
-      border-radius: 8px;
-      border: none;
-      background: #00f5d4;
-      color: #000;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 8px;
+      padding: 8px 14px; border-radius: 8px; border: none; background: #00f5d4;
+      color: #000; font-weight: bold; cursor: pointer; margin-top: 8px;
     }
-
-    /* Oyuncu Kartları */
-    .players-bar {
-      display: flex;
-      justify-content: space-between;
-      width: 100%; max-width: 380px;
-      margin-bottom: 8px; z-index: 2;
-      gap: 10px;
-    }
-    .player-card {
-      flex: 1;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      padding: 6px 10px;
-      border-radius: 12px;
-      text-align: center;
-      backdrop-filter: blur(10px);
-    }
-    .player-card.active-turn {
-      border-color: #00f5d4;
-      box-shadow: 0 0 15px rgba(0, 245, 212, 0.4);
-      background: rgba(0, 245, 212, 0.1);
-    }
+    .players-bar { display: flex; justify-content: space-between; width: 100%; max-width: 380px; margin-bottom: 8px; z-index: 2; gap: 10px; }
+    .player-card { flex: 1; background: rgba(255,255,255,0.05); padding: 6px; border-radius: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.15); }
+    .player-card.active-turn { border-color: #00f5d4; background: rgba(0,245,212,0.1); }
     .player-name { font-size: 0.85rem; font-weight: bold; color: #ffd166; }
-
-    /* Şah Çekildi Uyarı Banner'ı */
     .check-alert {
-      background: rgba(239, 68, 68, 0.2);
-      border: 1px solid #ef4444;
-      color: #fca5a5;
-      padding: 4px 12px;
-      border-radius: 8px;
-      font-size: 0.8rem;
-      font-weight: bold;
-      margin-bottom: 6px;
-      display: none;
-      animation: pulseAlert 1s infinite;
-      z-index: 2;
+      background: rgba(239,68,68,0.2); border: 1px solid #ef4444; color: #fca5a5;
+      padding: 4px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; margin-bottom: 6px; display: none; z-index: 2;
     }
-    @keyframes pulseAlert {
-      0% { opacity: 0.6; }
-      50% { opacity: 1; }
-      100% { opacity: 0.6; }
-    }
-
-    /* Tahta Alanı */
-    .arena {
-      display: flex; align-items: center; gap: 6px; z-index: 2;
-    }
+    .arena { display: flex; align-items: center; gap: 6px; z-index: 2; }
     .captured-box {
-      width: 35px; height: 340px;
-      background: rgba(0, 0, 0, 0.6);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
-      display: flex; flex-direction: column; align-items: center;
-      padding: 4px; gap: 3px; font-size: 1.2rem; overflow-y: auto;
+      width: 35px; height: 340px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px; display: flex; flex-direction: column; align-items: center; padding: 4px; gap: 3px; overflow-y: auto;
     }
-    .captured-label {
-      font-size: 0.55rem; opacity: 0.5; border-bottom: 1px solid rgba(255,255,255,0.2); width: 100%; text-align: center;
-    }
-
-    .board-frame {
-      padding: 6px;
-      background: linear-gradient(135deg, #1b263b, #0d1b2a);
-      border-radius: 16px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.8);
-      border: 2px solid #415a77;
-    }
-    .chess-grid {
-      display: grid;
-      grid-template-columns: repeat(8, 1fr);
-      grid-template-rows: repeat(8, 1fr);
-      width: 340px; height: 340px;
-      border: 2px solid #111;
-      position: relative;
-    }
-
-    .cell {
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; user-select: none; position: relative;
-    }
+    .captured-label { font-size: 0.55rem; opacity: 0.5; border-bottom: 1px solid rgba(255,255,255,0.2); width: 100%; text-align: center; }
+    .board-frame { padding: 6px; background: #1b263b; border-radius: 16px; border: 2px solid #415a77; }
+    .chess-grid { display: grid; grid-template-columns: repeat(8, 1fr); width: 340px; height: 340px; border: 2px solid #111; position: relative; }
+    .cell { display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; position: relative; }
     .cell.light { background: #f0d9b5; }
     .cell.dark { background: #b58863; }
     .cell.selected { background: #facc15 !important; }
-    
-    /* Şah Tehdidi Kırmızı Yanıp Sönen Çerçeve */
-    .cell.in-check {
-      background: #ef4444 !important;
-      box-shadow: inset 0 0 15px #991b1b;
-      animation: checkPulse 0.8s infinite alternate;
-    }
-    @keyframes checkPulse {
-      0% { background: #dc2626; }
-      100% { background: #ef4444; }
-    }
-
-    .cell.movable::after {
-      content: '';
-      position: absolute;
-      width: 14px; height: 14px;
-      background: #22c55e;
-      border-radius: 50%;
-      box-shadow: 0 0 6px #22c55e;
-    }
-
-    .chess-piece {
-      width: 82%;
-      height: 82%;
-      background-size: contain;
-      background-repeat: no-repeat;
-      background-position: center;
-      filter: drop-shadow(0 4px 3px rgba(0,0,0,0.6));
-      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      z-index: 5;
-    }
-    .chess-piece.moving {
-      transform: scale(1.2) translateY(-10px);
-      filter: drop-shadow(0 10px 8px rgba(0,0,0,0.8));
-    }
-
-    /* Modal */
-    .modal-overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.85);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      z-index: 100; display: none;
-    }
-    .modal-box {
-      background: #1b263b; padding: 25px 35px; border-radius: 20px;
-      border: 2px solid #00f5d4; text-align: center;
-    }
-    .modal-box h2 { font-size: 1.5rem; color: #00f5d4; margin-bottom: 8px; }
-    .modal-box p { font-size: 0.95rem; margin-bottom: 15px; opacity: 0.9; }
-    .btn-action {
-      background: #ff007f; color: #fff; border: none;
-      padding: 8px 18px; font-size: 0.85rem; font-weight: bold;
-      border-radius: 10px; cursor: pointer;
-    }
+    .cell.in-check { background: #ef4444 !important; box-shadow: inset 0 0 15px #991b1b; }
+    .cell.movable::after { content: ''; position: absolute; width: 14px; height: 14px; background: #22c55e; border-radius: 50%; }
+    .chess-piece { width: 82%; height: 82%; background-size: contain; background-repeat: no-repeat; background-position: center; transition: all 0.2s; z-index: 5; }
+    .chess-piece.moving { transform: scale(1.2) translateY(-10px); }
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; display: none; }
+    .modal-box { background: #1b263b; padding: 25px; border-radius: 20px; border: 2px solid #00f5d4; text-align: center; }
+    .btn-action { background: #ff007f; color: #fff; border: none; padding: 8px 18px; font-weight: bold; border-radius: 10px; cursor: pointer; margin-top: 10px; }
   </style>
 </head>
 <body>
 
   <div class="bg-ticker">
     <div class="ticker-line">ENES MAAŞINA ZAM İŞİNE SON • MUAMMER ARENA • </div>
-    <div class="ticker-line">ENES MAAŞINA ZAM İŞİNE SON • MUAMMER ARENA • </div>
   </div>
 
-  <header>
-    <h1>ONLINE CHESS ARENA</h1>
-  </header>
+  <header><h1>ONLINE CHESS ARENA</h1></header>
 
   <div class="lobby-panel" id="lobbyPanel">
-    <h3 style="font-size: 1rem; color: #00f5d4; margin-bottom: 5px;">5 Haneli Oda Kodu</h3>
-    <div id="roomCodeDisplay" style="font-size: 1.5rem; font-weight: bold; color: #ffd166; letter-spacing: 3px; margin: 5px 0;">Oluşturuluyor...</div>
-    <p style="font-size: 0.75rem; opacity: 0.7; margin-bottom: 8px;">Bu kodu arkadaşına söyle veya o sana söylesin.</p>
-    <div>
-      <input type="text" id="partnerCodeInput" placeholder="5 Haneli Kod" maxlength="5">
-      <br>
-      <button onclick="joinRoom()">Odaya Katıl</button>
-    </div>
+    <h3 style="color: #00f5d4; margin-bottom: 5px;">5 Haneli Oda Kodu</h3>
+    <div id="roomCodeDisplay" style="font-size: 1.5px; font-weight: bold; color: #ffd166; letter-spacing: 3px;">Yükleniyor...</div>
+    <input type="text" id="partnerCodeInput" placeholder="Kod" maxlength="5"><br>
+    <button onclick="joinRoom()">Odaya Katıl</button>
   </div>
 
   <div class="players-bar">
-    <div class="player-card active-turn" id="card-white">
-      <div class="player-name">Muammer (Beyaz)</div>
-    </div>
-    <div class="player-card" id="card-black">
-      <div class="player-name">Enes (Siyah)</div>
-    </div>
+    <div class="player-card active-turn" id="card-white"><div class="player-name">Muammer (Beyaz)</div></div>
+    <div class="player-card" id="card-black"><div class="player-name">Enes (Siyah)</div></div>
   </div>
 
-  <!-- Şah Çekildi Uyarı Banner'ı -->
   <div class="check-alert" id="checkAlert">⚠️ DİKKAT: ŞAH ÇEKİLDİ!</div>
 
   <div class="arena">
-    <div class="captured-box" id="captured-black">
-      <div class="captured-label">Alınan</div>
-    </div>
-
-    <div class="board-frame">
-      <div class="chess-grid" id="chessGrid"></div>
-    </div>
-
-    <div class="captured-box" id="captured-white">
-      <div class="captured-label">Alınan</div>
-    </div>
+    <div class="captured-box" id="captured-black"><div class="captured-label">Alınan</div></div>
+    <div class="board-frame"><div class="chess-grid" id="chessGrid"></div></div>
+    <div class="captured-box" id="captured-white"><div class="captured-label">Alınan</div></div>
   </div>
 
   <div class="modal-overlay" id="endModal">
     <div class="modal-box">
-      <h2 id="modalTitle">OYUN BİTTİ</h2>
+      <h2 id="modalTitle" style="color: #00f5d4;">OYUN BİTTİ</h2>
       <p id="modalDesc">Kazanan belirlendi!</p>
       <button class="btn-action" onclick="location.reload()">Yeniden Başla</button>
     </div>
@@ -314,121 +131,66 @@
       ['wR','wN','wB','wQ','wK','wB','wN','wR']
     ];
 
-    let currentTurn = 'w';
-    let activeSelection = null;
-    let validMoves = [];
-    let lostByWhite = [];
-    let lostByBlack = [];
-
-    // Rok için taşların oynayıp oynamadığını takip eden bayraklar
+    let currentTurn = 'w', activeSelection = null, validMoves = [], lostByWhite = [], lostByBlack = [];
     let hasMoved = { wK: false, wR0: false, wR7: false, bk: false, bR0: false, bR7: false };
-
-    let peer = null;
-    let conn = null;
-    let myRole = null;
-    let my5DigitCode = "";
-
-    function generate5DigitCode() {
-      return Math.floor(10000 + Math.random() * 90000).toString();
-    }
+    let peer = null, conn = null, myRole = null;
 
     function initPeerSystem() {
-      my5DigitCode = generate5DigitCode();
-      peer = new Peer("muammer-chess-" + my5DigitCode);
-
+      let code = Math.floor(10000 + Math.random() * 90000).toString();
+      peer = new Peer("muammer-chess-" + code);
       peer.on('open', () => {
-        document.getElementById('roomCodeDisplay').innerText = my5DigitCode;
+        document.getElementById('roomCodeDisplay').innerText = code;
         myRole = 'w';
       });
-
-      peer.on('error', (err) => {
-        if (err.type === 'unavailable-id') initPeerSystem();
-      });
-
-      peer.on('connection', (connection) => {
-        conn = connection;
-        setupConnEvents();
-        alert("Enes odaya katıldı! Maç başlıyor.");
+      peer.on('error', () => { setTimeout(initPeerSystem, 1000); });
+      peer.on('connection', (c) => {
+        conn = c; setupConnEvents();
+        alert("Enes odaya katıldı!");
         document.getElementById('lobbyPanel').style.display = 'none';
       });
     }
 
     function joinRoom() {
-      const code = document.getElementById('partnerCodeInput').value.trim();
-      if (code.length !== 5) {
-        alert("Lütfen geçerli 5 haneli oda kodunu gir!");
-        return;
-      }
-
-      const targetId = "muammer-chess-" + code;
-      conn = peer.connect(targetId);
+      let code = document.getElementById('partnerCodeInput').value.trim();
+      if (code.length !== 5) return alert("5 haneli kod gir!");
+      conn = peer.connect("muammer-chess-" + code);
       myRole = 'b';
-
       conn.on('open', () => {
         setupConnEvents();
-        alert("Odaya başarıyla bağlandın! Maç başlıyor.");
+        alert("Bağlanıldı!");
         document.getElementById('lobbyPanel').style.display = 'none';
       });
-
-      conn.on('error', () => {
-        alert("Oda bulunamadı! Kodu kontrol et.");
-      });
+      conn.on('error', () => { alert("Oda bulunamadı!"); });
     }
 
     function setupConnEvents() {
       conn.on('data', (data) => {
         if (data.type === 'move') {
-          boardState = data.board;
-          currentTurn = data.turn;
-          lostByWhite = data.lostW;
-          lostByBlack = data.lostB;
-          hasMoved = data.hasMoved;
-          if (data.gameOver) triggerEnd(data.winnerTitle, data.winnerDesc);
-          drawBoard();
-          updateTurnUI();
-          checkKingThreat();
+          boardState = data.board; currentTurn = data.turn;
+          lostByWhite = data.lostW; lostByBlack = data.lostB; hasMoved = data.hasMoved;
+          if (data.gameOver) triggerEnd(data.title, data.desc);
+          drawBoard(); updateTurnUI(); checkKingThreat();
         }
       });
     }
 
     function updateTurnUI() {
-      const cardW = document.getElementById('card-white');
-      const cardB = document.getElementById('card-black');
-      if (currentTurn === 'w') {
-        cardW.classList.add('active-turn');
-        cardB.classList.remove('active-turn');
-      } else {
-        cardB.classList.add('active-turn');
-        cardW.classList.remove('active-turn');
-      }
+      document.getElementById('card-white').classList.toggle('active-turn', currentTurn === 'w');
+      document.getElementById('card-black').classList.toggle('active-turn', currentTurn === 'b');
     }
 
-    // Belirli bir rengin Şah'ına şah çekilip çekilmediğini kontrol et
     function isKingInCheck(color) {
-      let kingCode = (color === 'w') ? 'wK' : 'bk';
-      let kingPos = null;
-
+      let kingCode = (color === 'w') ? 'wK' : 'bk', kingPos = null;
       for (let r = 0; r < 8; r++) {
-        for (let c = 0; c < 8; c++) {
-          if (boardState[r][c] === kingCode) {
-            kingPos = { r, c };
-            break;
-          }
-        }
-        if (kingPos) break;
+        for (let c = 0; c < 8; c++) { if (boardState[r][c] === kingCode) kingPos = { r, c }; }
       }
       if (!kingPos) return null;
-
-      // Rakip taşların bu kareye ulaşabiliyor mu kontrol et
-      let opponent = (color === 'w') ? 'b' : 'w';
+      let opp = (color === 'w') ? 'b' : 'w';
       for (let r = 0; r < 8; r++) {
         for (let c = 0; c < 8; c++) {
-          let p = boardState[r][c];
-          if (p && p.startsWith(opponent)) {
-            let moves = computeMoves(r, c, p, true);
-            if (moves.some(m => m.r === kingPos.r && m.c === kingPos.c)) {
-              return kingPos; // Şah tehdit altında!
-            }
+          if (boardState[r][c] && boardState[r][c].startsWith(opp)) {
+            let m = computeMoves(r, c, boardState[r][c], true);
+            if (m.some(x => x.r === kingPos.r && x.c === kingPos.c)) return kingPos;
           }
         }
       }
@@ -436,48 +198,30 @@
     }
 
     function checkKingThreat() {
-      let threatPos = isKingInCheck(currentTurn);
-      const alertBox = document.getElementById('checkAlert');
-      if (threatPos) {
-        alertBox.style.display = 'block';
-      } else {
-        alertBox.style.display = 'none';
-      }
-      return threatPos;
+      let t = isKingInCheck(currentTurn);
+      document.getElementById('checkAlert').style.display = t ? 'block' : 'none';
+      return t;
     }
 
     function drawBoard() {
       const grid = document.getElementById('chessGrid');
       grid.innerHTML = '';
-
-      let threatPos = isKingInCheck(currentTurn);
-
+      let threat = isKingInCheck(currentTurn);
       for (let r = 0; r < 8; r++) {
         for (let c = 0; c < 8; c++) {
-          const cell = document.createElement('div');
-          cell.className = `cell ${(r + c) % 2 === 0 ? 'light' : 'dark'}`;
-          cell.dataset.row = r;
-          cell.dataset.col = c;
-
-          if (threatPos && threatPos.r === r && threatPos.c === c) {
-            cell.classList.add('in-check');
-          }
-
-          if (activeSelection && activeSelection.r === r && activeSelection.c === c) {
-            cell.classList.add('selected');
-          }
-          if (validMoves.some(m => m.r === r && m.c === c)) {
-            cell.classList.add('movable');
-          }
-
-          const code = boardState[r][c];
+          let cell = document.createElement('div');
+          cell.className = `cell ${(r+c)%2===0?'light':'dark'}`;
+          cell.dataset.row = r; cell.dataset.col = c;
+          if (threat && threat.r === r && threat.c === c) cell.classList.add('in-check');
+          if (activeSelection && activeSelection.r === r && activeSelection.c === c) cell.classList.add('selected');
+          if (validMoves.some(m => m.r === r && m.c === c)) cell.classList.add('movable');
+          let code = boardState[r][c];
           if (code) {
-            const pieceDiv = document.createElement('div');
-            pieceDiv.className = 'chess-piece';
-            pieceDiv.style.backgroundImage = `url('${pieceSvgs[code]}')`;
-            cell.appendChild(pieceDiv);
+            let p = document.createElement('div');
+            p.className = 'chess-piece';
+            p.style.backgroundImage = `url('${pieceSvgs[code]}')`;
+            cell.appendChild(p);
           }
-
           cell.addEventListener('click', () => onCellTouch(r, c));
           grid.appendChild(cell);
         }
@@ -486,140 +230,133 @@
     }
 
     function drawCaptured() {
-      const boxW = document.getElementById('captured-white');
-      const boxB = document.getElementById('captured-black');
-
-      boxW.innerHTML = '<div class="captured-label">Alınan</div>';
+      document.getElementById('captured-white').innerHTML = '<div class="captured-label">Alınan</div>';
       lostByBlack.forEach(p => {
-        let d = document.createElement('div');
-        d.style.width = '24px'; d.style.height = '24px';
-        d.style.backgroundImage = `url('${pieceSvgs[p]}')`;
-        d.style.backgroundSize = 'contain'; d.style.backgroundRepeat = 'no-repeat';
-        boxW.appendChild(d);
+        let d = document.createElement('div'); d.style.width='22px'; d.style.height='22px';
+        d.style.backgroundImage = `url('${pieceSvgs[p]}')`; d.style.backgroundSize='contain';
+        document.getElementById('captured-white').appendChild(d);
       });
-
-      boxB.innerHTML = '<div class="captured-label">Alınan</div>';
+      document.getElementById('captured-black').innerHTML = '<div class="captured-label">Alınan</div>';
       lostByWhite.forEach(p => {
-        let d = document.createElement('div');
-        d.style.width = '24px'; d.style.height = '24px';
-        d.style.backgroundImage = `url('${pieceSvgs[p]}')`;
-        d.style.backgroundSize = 'contain'; d.style.backgroundRepeat = 'no-repeat';
-        boxB.appendChild(d);
+        let d = document.createElement('div'); d.style.width='22px'; d.style.height='22px';
+        d.style.backgroundImage = `url('${pieceSvgs[p]}')`; d.style.backgroundSize='contain';
+        document.getElementById('captured-black').appendChild(d);
       });
     }
 
     function onCellTouch(r, c) {
-      if (myRole !== currentTurn) {
-        alert("Sıra sende değil!");
-        return;
-      }
-
-      const piece = boardState[r][c];
-
+      if (myRole !== currentTurn) return alert("Sıra sende değil!");
+      let piece = boardState[r][c];
       if (activeSelection) {
-        const target = validMoves.find(m => m.r === r && m.c === c);
+        let target = validMoves.find(m => m.r === r && m.c === c);
         if (target) {
-          const startCell = document.querySelector(`[data-row='${activeSelection.r}'][data-col='${activeSelection.c}']`);
-          const pieceEl = startCell ? startCell.querySelector('.chess-piece') : null;
-          
+          let startCell = document.querySelector(`[data-row='${activeSelection.r}'][data-col='${activeSelection.c}']`);
+          let pieceEl = startCell ? startCell.querySelector('.chess-piece') : null;
           if (pieceEl) pieceEl.classList.add('moving');
-
           setTimeout(() => {
-            const movingPiece = boardState[activeSelection.r][activeSelection.c];
-            const victim = boardState[r][c];
-
-            // ROK KONTROLÜ VE UYGULAMASI
-            if (movingPiece[1] === 'K' && Math.abs(c - activeSelection.c) === 2) {
-              if (c === 6) { // Kısa Rok
-                let rookCol = 7;
-                let newRookCol = 5;
-                boardState[r][newRookCol] = boardState[r][rookCol];
-                boardState[r][rookCol] = '';
-              } else if (c === 2) { // Uzun Rok
-                let rookCol = 0;
-                let newRookCol = 3;
-                boardState[r][newRookCol] = boardState[r][rookCol];
-                boardState[r][rookCol] = '';
-              }
+            let moving = boardState[activeSelection.r][activeSelection.c];
+            let vic = boardState[r][c];
+            if (moving[1] === 'K' && Math.abs(c - activeSelection.c) === 2) {
+              if (c === 6) { boardState[r][5] = boardState[r][7]; boardState[r][7] = ''; }
+              else if (c === 2) { boardState[r][3] = boardState[r][0]; boardState[r][0] = ''; }
             }
-
-            // Taş hareket takipleri (Rok için)
-            if (movingPiece === 'wK') hasMoved.wK = true;
-            if (movingPiece === 'bk') hasMoved.bk = true;
-            if (movingPiece === 'wR') {
-              if (activeSelection.r === 7 && activeSelection.c === 0) hasMoved.wR0 = true;
-              if (activeSelection.r === 7 && activeSelection.c === 7) hasMoved.wR7 = true;
-            }
-            if (movingPiece === 'bR') {
-              if (activeSelection.r === 0 && activeSelection.c === 0) hasMoved.bR0 = true;
-              if (activeSelection.r === 0 && activeSelection.c === 7) hasMoved.bR7 = true;
-            }
-
-            boardState[r][c] = movingPiece;
+            if (moving === 'wK') hasMoved.wK = true;
+            if (moving === 'bk') hasMoved.bk = true;
+            boardState[r][c] = moving;
             boardState[activeSelection.r][activeSelection.c] = '';
-
-            let isOver = false;
-            let winTitle = "";
-            let winDesc = "";
-
-            if (victim !== '') {
-              if (victim.startsWith('w')) lostByWhite.push(victim);
-              else lostByBlack.push(victim);
-
-              if (victim === 'wK' || victim === 'bk') {
-                isOver = true;
-                let victor = victim.startsWith('w') ? "Enes" : "Muammer";
-                winTitle = `${victor} Kazandı!`;
-                winDesc = "Şah ele geçirildi!";
-              }
+            let isOver = false, title = "", desc = "";
+            if (vic !== '') {
+              if (vic.startsWith('w')) lostByWhite.push(vic); else lostByBlack.push(vic);
+              if (vic === 'wK' || vic === 'bk') { isOver = true; title = (vic==='wK'?"Enes":"Muammer") + " Kazandı!"; desc = "Şah ele geçirildi!"; }
             }
-
             currentTurn = currentTurn === 'w' ? 'b' : 'w';
-            activeSelection = null;
-            validMoves = [];
-
+            activeSelection = null; validMoves = [];
             if (conn && conn.open) {
-              conn.send({
-                type: 'move',
-                board: boardState,
-                turn: currentTurn,
-                lostW: lostByWhite,
-                lostB: lostByBlack,
-                hasMoved: hasMoved,
-                gameOver: isOver,
-                winnerTitle: winTitle,
-                winnerDesc: winDesc
-              });
+              conn.send({ type: 'move', board: boardState, turn: currentTurn, lostW: lostByWhite, lostB: lostByBlack, hasMoved, gameOver: isOver, title, desc });
             }
-
-            if (isOver) triggerEnd(winTitle, winDesc);
-
-            drawBoard();
-            updateTurnUI();
-            checkKingThreat();
-          }, 250);
-
+            if (isOver) triggerEnd(title, desc);
+            drawBoard(); updateTurnUI(); checkKingThreat();
+          }, 200);
           return;
         }
       }
-
       if (piece && piece.startsWith(currentTurn)) {
         activeSelection = { r, c };
         validMoves = computeMoves(r, c, piece, false);
         drawBoard();
       } else {
-        activeSelection = null;
-        validMoves = [];
-        drawBoard();
+        activeSelection = null; validMoves = []; drawBoard();
       }
     }
 
-    function computeMoves(r, c, piece, isThreatCheck) {
-      let list = [];
-      let type = piece[1];
-      let color = piece[0];
-      let checkDir = (row, col) => {
+    function computeMoves(r, c, piece, isCheck) {
+      let list = [], type = piece[1], color = piece[0];
+      let add = (row, col) => {
         if (row >= 0 && row < 8 && col >= 0 && col < 8) {
           let dest = boardState[row][col];
-          if (dest === '') { list.push({ r: row, c: col }); return true; }
-          else if (!dest.sta
+          if (dest === '') { list.push({r: row, c: col}); return true; }
+          else if (!dest.startsWith(color)) { list.push({r: row, c: col}); return false; }
+          return false;
+        }
+        return false;
+      };
+      if (type === 'P') {
+        let step = (color === 'w') ? -1 : 1, base = (color === 'w') ? 6 : 1;
+        if (!isCheck && r + step >= 0 && r + step < 8 && boardState[r+step][c] === '') {
+          list.push({r: r+step, c: c});
+          if (r === base && boardState[r+step*2][c] === '') list.push({r: r+step*2, c: c});
+        }
+        [-1, 1].forEach(dc => {
+          let tr = r+step, tc = c+dc;
+          if (tr >= 0 && tr < 8 && tc >= 0 && tc < 8) {
+            let target = boardState[tr][tc];
+            if (isCheck || (target !== '' && !target.startsWith(color))) list.push({r: tr, c: tc});
+          }
+        });
+      } else if (type === 'N') {
+        [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(j => {
+          let tr = r+j[0], tc = c+j[1];
+          if (tr >= 0 && tr < 8 && tc >= 0 && tc < 8) {
+            let target = boardState[tr][tc];
+            if (isCheck || target === '' || !target.startsWith(color)) list.push({r: tr, c: tc});
+          }
+        });
+      } else if (type === 'B' || type === 'R' || type === 'Q') {
+        let dirs = [];
+        if (type === 'R' || type === 'Q') dirs.push([-1,0],[1,0],[0,-1],[0,1]);
+        if (type === 'B' || type === 'Q') dirs.push([-1,-1],[-1,1],[1,-1],[1,1]);
+        dirs.forEach(d => {
+          let s = 1; while(add(r + d[0]*s, c + d[1]*s)) s++;
+        });
+      } else if (type === 'K') {
+        [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]].forEach(s => {
+          let tr = r+s[0], tc = c+s[1];
+          if (tr >= 0 && tr < 8 && tc >= 0 && tc < 8) {
+            let target = boardState[tr][tc];
+            if (isCheck || target === '' || !target.startsWith(color)) list.push({r: tr, c: tc});
+          }
+        });
+        if (!isCheck) {
+          if (color === 'w' && r === 7 && c === 4 && !hasMoved.wK) {
+            if (!hasMoved.wR7 && boardState[7][5]==='' && boardState[7][6]==='') list.push({r:7, c:6});
+            if (!hasMoved.wR0 && boardState[7][1]==='' && boardState[7][2]==='' && boardState[7][3]==='') list.push({r:7, c:2});
+          }
+          if (color === 'b' && r === 0 && c === 4 && !hasMoved.bk) {
+            if (!hasMoved.bR7 && boardState[0][5]==='' && boardState[0][6]==='') list.push({r:0, c:6});
+            if (!hasMoved.bR0 && boardState[0][1]==='' && boardState[0][2]==='' && boardState[0][3]==='') list.push({r:0, c:2});
+          }
+        }
+      }
+      return list;
+    }
+
+    function triggerEnd(title, desc) {
+      document.getElementById('modalTitle').innerText = title;
+      document.getElementById('modalDesc').innerText = desc;
+      document.getElementById('endModal').style.display = 'flex';
+    }
+
+    window.onload = () => { initPeerSystem(); drawBoard(); };
+  </script>
+</body>
+</html>
